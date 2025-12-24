@@ -87,7 +87,13 @@
     </aside>
 
     <!-- ========== MAIN CONTENT (3 4 5 6) ========== -->
-     
+     <div v-if="isMobile && logo" class="mobile-header-clean">
+  <img :src="logo.URL" class="mh-logo" />
+  <div class="mh-name">
+    {{ logo.Name }}
+  </div>
+</div>
+
     <main class="main" ref="mainRef">
         <!-- ================== SKELETON ================== -->
   <div v-if="loadingMain" class="main-skeleton">
@@ -3514,7 +3520,7 @@ font-size: 11px;
   display: flex;
   align-items: center;
   gap: 12px;
-
+  margin-top: 5px;
   padding: 12px 16px;
   margin-bottom: 14px;
 
@@ -4246,6 +4252,7 @@ font-size: 11px;
     width: 100% !important;
     max-width: 100% !important;
     padding-bottom: 90px; /* chừa chỗ bottom bar */
+     padding-top: 0;
   }
   
   /* =====================================================
@@ -4952,6 +4959,75 @@ font-size: 11px;
 .detail-slide-leave-to {
   transform: translateX(-100%);
   opacity: 0;
+}
+
+/* ===== MOBILE HEADER – CLEAN VERSION ===== */
+.mobile-header-clean {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0 !important;
+  height: 52px;
+  padding: 0 14px;
+  margin-bottom: 10px;
+
+  background: linear-gradient(
+    135deg,
+    #16a34a,
+    #22c55e
+  );
+
+  border-radius: 14px;
+
+  box-shadow:
+    0 4px 14px rgba(22, 163, 74, 0.35);
+}
+
+/* LOGO – GỌN */
+.mh-logo {
+  width: 34px;
+  height: 34px;
+
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 2px;
+
+  object-fit: contain;
+}
+
+/* TÊN SHOP – APP STYLE */
+.mh-name {
+  font-size: 15px;
+  font-weight: 800;
+
+  color: #fef9c3; /* vàng nhạt, sang */
+  letter-spacing: 0.2px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 768px) {
+
+  /* ===== FIX HEADER MOBILE FULL WIDTH ===== */
+  .mobile-header-clean {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+
+    height: 52px;
+    padding: 0 14px;
+
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+
+    border-radius: 0;            /* ❌ bỏ bo góc */
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
 }
 
 }
