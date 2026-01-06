@@ -27,110 +27,212 @@
             <input v-model="form.Ten_nha_cung_cap" disabled />
           </div>
 
-          <div class="form-grid">
-            <!-- Lang -->
-            <div class="field span-12">
-              <label>Ngôn ngữ (Lang)</label>
-              <select v-model="form.Lang">
-                <option value="vi">🇻🇳 Việt (vi)</option>
-                <option value="en">🇺🇸 English (en)</option>
-                <option value="zh-CN">🇨🇳 中文 (zh-CN)</option>
-                <option value="fil">🇵🇭 Filipino (fil)</option>
-              </select>
+          <div class="form-panels">
+            <div class="panel">
+              <div class="panel-header">
+                <i class="ri-layout-grid-line"></i>
+                Hình ảnh & tên
+              </div>
+              <div class="panel-body panel-grid">
+                <div class="field span-6">
+                  <label>Main image</label>
+
+                  <div class="upload-wrap">
+                    <input type="file" accept="image/*" @change="handleMainImageUpload" />
+
+                    <div v-if="uploadingImg" class="hint"> Đang upload ảnh...</div>
+
+                    <div v-if="form.Main_img" class="img-preview">
+                      <img :src="form.Main_img" alt="" />
+                      <div class="img-actions">
+                        <button class="btn mini danger" type="button" @click="form.Main_img = ''">
+                          Xóa ảnh
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="field span-6">
+                  <label>Tên hàng</label>
+                  <input v-model="form.Ten_hang" placeholder="VD: Áo thun cotton..." />
+                  <!-- ✅ ẨN phần “mã hàng tự gen” -->
+                </div>
+
+                <div class="field span-12">
+                  <label>Mô tả</label>
+                  <textarea v-model="form.Mo_ta" rows="4" placeholder="Mô tả ngắn gọn..."></textarea>
+                </div>
+              </div>
             </div>
 
-            <!-- Main image | Tên hàng -->
-            <div class="field span-6">
-              <label>Main image</label>
+            <div class="panel">
+              <div class="panel-header">
+                <i class="ri-stack-line"></i>
+                Chi tiết sản phẩm
+              </div>
+              <div class="panel-body panel-grid">
+                <div class="field span-4">
+                  <label>Danh mục</label>
+                  <input v-model="form.Danh_muc" placeholder="VD: Áo, Quần, Giày..." />
+                </div>
+                <div class="field span-4">
+                  <label>ĐVT</label>
+                  <input v-model="form.Dvt" placeholder="VD: cái, hộp, đôi..." />
+                </div>
+                <div class="field span-4">
+                  <label>Size</label>
+                  <input v-model="form.Size" placeholder="VD: S/M/L, 40, 41..." />
+                </div>
+                <div class="field span-4">
+                  <label>Ngôn ngữ (Lang)</label>
+                  <select v-model="form.Lang">
+                    <option value="vi">Việt Nam</option>
+                    <option value="en">English</option>
+                    <option value="zh-CN">Trung Quốc</option>
+                    <option value="fil">Phillipines</option>
+                    <option value="ko">Hàn Quốc</option>
+                  </select>
+                </div>
+                <div class="field span-4">
+                  <label>Trạng thái</label>
+                  <select v-model="form.Trang_thai">
+                    <option value="Còn hàng">Còn hàng</option>
+                    <option value="Hết hàng">Hết hàng</option>
+                  </select>
+                </div>
+                <div class="field span-4">
+                  <label>Đơn vị tiền tệ</label>
+                  <input v-model="form.Don_vi_tien_te" placeholder="VD: VND, USD, CNY..." />
+                </div>
+              </div>
+            </div>
 
-              <div class="upload-wrap">
-                <input type="file" accept="image/*" @change="handleMainImageUpload" />
-
-                <div v-if="uploadingImg" class="hint"> Đang upload ảnh...</div>
-
-                <div v-if="form.Main_img" class="img-preview">
-                  <img :src="form.Main_img" alt="" />
-                  <div class="img-actions">
-                    <button class="btn mini danger" type="button" @click="form.Main_img = ''">
-                      Xóa ảnh
-                    </button>
+            <div class="panel">
+              <div class="panel-header">
+                <i class="ri-price-tag-3-line"></i>
+                Giá bán
+              </div>
+              <div class="panel-body panel-grid">
+                <div class="field span-6">
+                  <label>Giá gốc</label>
+                  <div class="money-wrap">
+                    <input
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      class="money-input"
+                      :value="fmtMoneyInput(form.Gia_goc)"
+                      @input="(e) => (form.Gia_goc = parseMoneyInput(e.target.value))"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div class="field span-6">
+                  <label>Giá bán</label>
+                  <div class="money-wrap">
+                    <input
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      class="money-input"
+                      :value="fmtMoneyInput(form.Gia_ban)"
+                      @input="(e) => (form.Gia_ban = parseMoneyInput(e.target.value))"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="field span-6">
-              <label>Tên hàng</label>
-              <input v-model="form.Ten_hang" placeholder="VD: Áo thun cotton..." />
-              <!-- ✅ ẨN phần “mã hàng tự gen” -->
-            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <i class="ri-image-fill"></i>
+                Ảnh phụ (tối đa 6 ảnh)
+              </div>
+              <div class="panel-body panel-body--stacked">
+                <div class="sub-images-grid">
+                  <!-- IMG 1 -->
+                  <div class="sub-img-item">
+                    <div class="upload-wrap-mini">
+                      <input type="file" accept="image/*" @change="(e) => handleSubImageUpload(e, 'img_1')" />
+                      <div v-if="uploadingSubImg.img_1" class="hint-mini">Uploading...</div>
+                      <div v-if="form.img_1" class="img-preview-mini">
+                        <img :src="form.img_1" alt="" />
+                        <button class="btn-remove-mini" type="button" @click="form.img_1 = ''">×</button>
+                      </div>
+                      <div v-else class="placeholder-mini">Ảnh 1</div>
+                    </div>
+                  </div>
 
-            <!-- Trạng thái -->
-            <div class="field span-12">
-              <label>Trạng thái</label>
-              <select v-model="form.Trang_thai">
-                <option value="Còn hàng">Còn hàng</option>
-                <option value="Hết hàng">Hết hàng</option>
-              </select>
-            </div>
+                  <!-- IMG 2 -->
+                  <div class="sub-img-item">
+                    <div class="upload-wrap-mini">
+                      <input type="file" accept="image/*" @change="(e) => handleSubImageUpload(e, 'img_2')" />
+                      <div v-if="uploadingSubImg.img_2" class="hint-mini">Uploading...</div>
+                      <div v-if="form.img_2" class="img-preview-mini">
+                        <img :src="form.img_2" alt="" />
+                        <button class="btn-remove-mini" type="button" @click="form.img_2 = ''">×</button>
+                      </div>
+                      <div v-else class="placeholder-mini">Ảnh 2</div>
+                    </div>
+                  </div>
 
-            <!-- Mô tả -->
-            <div class="field span-12">
-              <label>Mô tả</label>
-              <textarea v-model="form.Mo_ta" rows="4" placeholder="Mô tả ngắn gọn..."></textarea>
-            </div>
+                  <!-- IMG 3 -->
+                  <div class="sub-img-item">
+                    <div class="upload-wrap-mini">
+                      <input type="file" accept="image/*" @change="(e) => handleSubImageUpload(e, 'img_3')" />
+                      <div v-if="uploadingSubImg.img_3" class="hint-mini">Uploading...</div>
+                      <div v-if="form.img_3" class="img-preview-mini">
+                        <img :src="form.img_3" alt="" />
+                        <button class="btn-remove-mini" type="button" @click="form.img_3 = ''">×</button>
+                      </div>
+                      <div v-else class="placeholder-mini">Ảnh 3</div>
+                    </div>
+                  </div>
 
-            <!-- Danh mục | DVT | Size -->
-            <div class="field span-4">
-              <label>Danh mục</label>
-              <input v-model="form.Danh_muc" placeholder="VD: Áo, Quần, Giày..." />
-            </div>
-            <div class="field span-4">
-              <label>ĐVT</label>
-              <input v-model="form.Dvt" placeholder="VD: cái, hộp, đôi..." />
-            </div>
-            <div class="field span-4">
-              <label>Size</label>
-              <input v-model="form.Size" placeholder="VD: S/M/L, 40, 41..." />
-            </div>
+                  <!-- IMG 4 -->
+                  <div class="sub-img-item">
+                    <div class="upload-wrap-mini">
+                      <input type="file" accept="image/*" @change="(e) => handleSubImageUpload(e, 'img_4')" />
+                      <div v-if="uploadingSubImg.img_4" class="hint-mini">Uploading...</div>
+                      <div v-if="form.img_4" class="img-preview-mini">
+                        <img :src="form.img_4" alt="" />
+                        <button class="btn-remove-mini" type="button" @click="form.img_4 = ''">×</button>
+                      </div>
+                      <div v-else class="placeholder-mini">Ảnh 4</div>
+                    </div>
+                  </div>
 
-            <!-- Tiền tệ | Giá gốc | Giá bán -->
-            <div class="field span-4">
-              <label>Đơn vị tiền tệ</label>
-              <input v-model="form.Don_vi_tien_te" placeholder="VD: VND, USD, CNY..." />
-            </div>
-            <div class="field span-4">
-              <label>Giá gốc</label>
-             <div class="money-wrap">
-  <input
-    type="text"
-    inputmode="numeric"
-    autocomplete="off"
-    class="money-input"
-    :value="fmtMoneyInput(form.Gia_goc)"
-    @input="(e) => (form.Gia_goc = parseMoneyInput(e.target.value))"
-    placeholder="0"
-  />
+                  <!-- IMG 5 -->
+                  <div class="sub-img-item">
+                    <div class="upload-wrap-mini">
+                      <input type="file" accept="image/*" @change="(e) => handleSubImageUpload(e, 'img_5')" />
+                      <div v-if="uploadingSubImg.img_5" class="hint-mini">Uploading...</div>
+                      <div v-if="form.img_5" class="img-preview-mini">
+                        <img :src="form.img_5" alt="" />
+                        <button class="btn-remove-mini" type="button" @click="form.img_5 = ''">×</button>
+                      </div>
+                      <div v-else class="placeholder-mini">Ảnh 5</div>
+                    </div>
+                  </div>
 
-</div>
-            </div>
-            <div class="field span-4">
-              <label>Giá bán</label>
-             <div class="money-wrap">
-  <input
-    type="text"
-    inputmode="numeric"
-    autocomplete="off"
-    class="money-input"
-    :value="fmtMoneyInput(form.Gia_ban)"
-    @input="(e) => (form.Gia_ban = parseMoneyInput(e.target.value))"
-    placeholder="0"
-  />
-  
-</div>
+                  <!-- IMG 6 -->
+                  <div class="sub-img-item">
+                    <div class="upload-wrap-mini">
+                      <input type="file" accept="image/*" @change="(e) => handleSubImageUpload(e, 'img_6')" />
+                      <div v-if="uploadingSubImg.img_6" class="hint-mini">Uploading...</div>
+                      <div v-if="form.img_6" class="img-preview-mini">
+                        <img :src="form.img_6" alt="" />
+                        <button class="btn-remove-mini" type="button" @click="form.img_6 = ''">×</button>
+                      </div>
+                      <div v-else class="placeholder-mini">Ảnh 6</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
           <!-- ACTIONS -->
           <div class="actions">
             <button class="btn primary" type="button" @click="themHang" style="font-size: 20px;">
@@ -241,6 +343,7 @@
                 <tr>
                   <th>STT</th>
                   <th>Ảnh</th>
+                  <th>Ảnh phụ</th>
                   <th>Mã hàng</th>
                   <th>Tên hàng</th>
                   <th>Mô tả</th>
@@ -269,6 +372,16 @@
                     <div class="thumb">
                       <img v-if="h.Main_img" :src="h.Main_img" alt="" />
                       <div v-else class="thumb-null">No</div>
+                    </div>
+                  </td>
+                  <td class="sub-images-cell">
+                    <div class="sub-image-grid">
+                      <template v-for="(field, idx) in SUB_IMAGE_FIELDS" :key="field">
+                        <div class="sub-thumb" :class="{ empty: !h[field] }">
+                          <img v-if="h[field]" :src="h[field]" alt="Ảnh phụ" />
+                          <div v-else class="placeholder-mini">Ảnh {{ idx + 1 }}</div>
+                        </div>
+                      </template>
                     </div>
                   </td>
 
@@ -312,35 +425,44 @@
       </div>
 
       <!-- ================= BULK MODAL ================= -->
-      <div v-if="showBulkModal" class="modal-mask" @click.self="closeBulk">
-        <div class="modal-box wide">
-          <h3>Nhập hàng loạt</h3>
+  <!-- ================= BULK MODAL ================= -->
+<div v-if="showBulkModal" class="modal-mask" @click.self="closeBulk">
+  <div class="modal-box wide">
+    <h3>Nhập hàng loạt</h3>
 
-          <textarea v-model="bulkText" rows="8" placeholder="Mỗi dòng là 1 giá trị"></textarea>
+    <textarea v-model="bulkText" rows="8" placeholder="Mỗi dòng là 1 giá trị"></textarea>
 
-          <div class="bulk-buttons">
-            <button class="btn chip" @click="applyBulk('Ten_hang')"><i class="ri-add-circle-fill"></i>Tên hàng</button>
-            <button class="btn chip" @click="applyBulk('Main_img')"><i class="ri-add-circle-fill"></i> Ảnh (URL)</button>
+    <div class="bulk-buttons">
+      <button class="btn chip" @click="applyBulk('Ten_hang')"><i class="ri-add-circle-fill"></i>Tên hàng</button>
+      <button class="btn chip" @click="applyBulk('Main_img')"><i class="ri-add-circle-fill"></i> Ảnh chính (URL)</button>
 
-            <button class="btn chip" @click="applyBulk('Danh_muc')"><i class="ri-add-circle-fill"></i> Danh mục</button>
-            <button class="btn chip" @click="applyBulk('Dvt')"><i class="ri-add-circle-fill"></i> ĐVT</button>
-            <button class="btn chip" @click="applyBulk('Size')"><i class="ri-add-circle-fill"></i> Size</button>
+      <!-- ✅ 6 NÚT ẢNH PHỤ -->
+      <button class="btn chip" @click="applyBulk('img_1')"><i class="ri-add-circle-fill"></i> Ảnh phụ 1</button>
+      <button class="btn chip" @click="applyBulk('img_2')"><i class="ri-add-circle-fill"></i> Ảnh phụ 2</button>
+      <button class="btn chip" @click="applyBulk('img_3')"><i class="ri-add-circle-fill"></i> Ảnh phụ 3</button>
+      <button class="btn chip" @click="applyBulk('img_4')"><i class="ri-add-circle-fill"></i> Ảnh phụ 4</button>
+      <button class="btn chip" @click="applyBulk('img_5')"><i class="ri-add-circle-fill"></i> Ảnh phụ 5</button>
+      <button class="btn chip" @click="applyBulk('img_6')"><i class="ri-add-circle-fill"></i> Ảnh phụ 6</button>
 
-            <button class="btn chip" @click="applyBulk('Gia_goc')"><i class="ri-add-circle-fill"></i> Giá gốc</button>
-            <button class="btn chip" @click="applyBulk('Gia_ban')"><i class="ri-add-circle-fill"></i> Giá bán</button>
+      <button class="btn chip" @click="applyBulk('Danh_muc')"><i class="ri-add-circle-fill"></i> Danh mục</button>
+      <button class="btn chip" @click="applyBulk('Dvt')"><i class="ri-add-circle-fill"></i> ĐVT</button>
+      <button class="btn chip" @click="applyBulk('Size')"><i class="ri-add-circle-fill"></i> Size</button>
 
-            <button class="btn chip" @click="applyBulk('Don_vi_tien_te')"><i class="ri-add-circle-fill"></i> Tiền tệ</button>
-            <button class="btn chip" @click="applyBulk('Lang')"><i class="ri-add-circle-fill"></i> Lang</button>
-            <button class="btn chip" @click="applyBulk('Trang_thai')"><i class="ri-add-circle-fill"></i> Trạng thái</button>
+      <button class="btn chip" @click="applyBulk('Gia_goc')"><i class="ri-add-circle-fill"></i> Giá gốc</button>
+      <button class="btn chip" @click="applyBulk('Gia_ban')"><i class="ri-add-circle-fill"></i> Giá bán</button>
 
-            <button class="btn chip" @click="applyBulk('Mo_ta')"><i class="ri-add-circle-fill"></i> Mô tả</button>
-          </div>
+      <button class="btn chip" @click="applyBulk('Don_vi_tien_te')"><i class="ri-add-circle-fill"></i> Tiền tệ</button>
+      <button class="btn chip" @click="applyBulk('Lang')"><i class="ri-add-circle-fill"></i> Lang</button>
+      <button class="btn chip" @click="applyBulk('Trang_thai')"><i class="ri-add-circle-fill"></i> Trạng thái</button>
 
-          <div class="modal-actions">
-            <button class="btn danger" @click="closeBulk"> Đóng</button>
-          </div>
-        </div>
-      </div>
+      <button class="btn chip" @click="applyBulk('Mo_ta')"><i class="ri-add-circle-fill"></i> Mô tả</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn danger" @click="closeBulk"> Đóng</button>
+    </div>
+  </div>
+</div>
 
       <!-- ================= MODAL ẢNH (XEM + COPY ALL, BỎ COPY ONE) ================= -->
       <div v-if="showBulkImageModal" class="modal-mask" @click.self="showBulkImageModal = false">
@@ -369,11 +491,14 @@
       <div v-if="showMobileList" class="modal-mask" @click.self="showMobileList = false">
         <div class="modal-box mobile-sheet">
           <div class="sheet-head">
-            <div class="sheet-title">Hàng đã thêm ({{ list.length }})</div>
+            <div>
+              <div class="sheet-title">Hàng đã thêm ({{ list.length }})</div>
+              <p class="sheet-subtitle">Kiểm tra lại trước khi gửi</p>
+            </div>
             <button class="btn ghost mini" type="button" @click="showMobileList = false">✖</button>
           </div>
 
-          <div v-if="!list.length" class="empty" style="margin:10px 0">
+          <div v-if="!list.length" class="empty sheet-empty">
             Chưa có hàng nào.
           </div>
 
@@ -386,13 +511,11 @@
                 </div>
               </div>
 
-              <div class="mid">
+                <div class="mid">
                 <div class="name">{{ h.Ten_hang }}</div>
                 <div class="price">
                   <span class="money strong">{{ fmtMoney(h.Gia_ban, h.Don_vi_tien_te) }}</span>
-                  <span class="tag currency">{{ h.Don_vi_tien_te }}</span>
                 </div>
-
                 <button class="link" type="button" @click="openDetail(i)">
                   XEM CHI TIẾT
                 </button>
@@ -416,7 +539,23 @@
               <img v-if="detailItem?.Main_img" :src="detailItem.Main_img" alt="" />
               <div v-else class="detail-img-null">No image</div>
             </div>
-
+                     <div class="detail-sub-images">
+              <div class="sub-images-grid detail">
+                <div v-for="slot in 6" :key="slot" class="sub-img-item">
+                  <div
+                    class="sub-thumb"
+                    :class="{ empty: !detailItem?.['img_' + slot] }"
+                  >
+                    <img
+                      v-if="detailItem?.['img_' + slot]"
+                      :src="detailItem?.['img_' + slot]"
+                      alt="Ảnh phụ"
+                    />
+                    <div v-else class="placeholder-mini">Ảnh {{ slot }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="detail-info">
               <div class="kv"><span class="k">Tên hàng:</span><span class="v">{{ detailItem?.Ten_hang }}</span></div>
               <div class="kv"><span class="k">Mã hàng:</span><span class="v mono">{{ detailItem?.Ma_hang }}</span></div>
@@ -447,6 +586,8 @@
                 </span>
               </div>
             </div>
+
+   
 
             <div class="detail-desc">
               <div class="k">Mô tả:</div>
@@ -493,6 +634,36 @@
                 class="hidden-input"
                 @change="handleEditImageUpload"
               />
+            </div>
+          </div>
+
+          <div class="edit-sub-images">
+            <div class="sub-images-grid edit">
+              <div
+                v-for="slot in 6"
+                :key="slot"
+                class="sub-img-item"
+              >
+                <div class="upload-wrap-mini">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="(e) => handleEditSubImageUpload(e, 'img_' + slot)"
+                  />
+                  <div v-if="uploadingEditSubImg['img_' + slot]" class="hint-mini">Uploading...</div>
+                  <div v-if="editForm['img_' + slot]" class="img-preview-mini">
+                    <img :src="editForm['img_' + slot]" alt="Ảnh phụ" />
+                    <button
+                      class="btn-remove-mini"
+                      type="button"
+                      @click="editForm['img_' + slot] = ''"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div v-else class="placeholder-mini">Ảnh {{ slot }}</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -560,12 +731,13 @@
             </div>
 
             <div class="field span-4">
-              <label>Lang</label>
+              <label>Ngôn ngữ</label>
               <select v-model="editForm.Lang">
-                <option value="vi">vi</option>
-                <option value="en">en</option>
-                <option value="zh-CN">zh-CN</option>
-                <option value="fil">fil</option>
+                <option value="vi">Việt Nam</option>
+                <option value="en">Tiếng Anh</option>
+                <option value="zh-CN">Trung Quốc</option>
+                <option value="fil">Phillipines</option>
+                <option value="ko">Hàn Quốc</option>
               </select>
             </div>
 
@@ -642,6 +814,14 @@ const bulkText = ref('')
 const uploadingImg = ref(false)
 const uploadingBulkImg = ref(false)
 const uploadingEditImg = ref(false)
+const uploadingEditSubImg = ref({
+  img_1: false,
+  img_2: false,
+  img_3: false,
+  img_4: false,
+  img_5: false,
+  img_6: false
+})
 
 const bulkImageUrls = ref([])
 const showBulkImageModal = ref(false)
@@ -696,11 +876,24 @@ const emptyForm = () => ({
   Don_vi_tien_te: '',
   // ẩn nhưng vẫn nhận
   Ma_nha_cung_cap: '',
-  Ten_nha_cung_cap: ''
+  Ten_nha_cung_cap: '',
+  img_1: '', // ✅
+  img_2: '', // ✅
+  img_3: '', // ✅
+  img_4: '', // ✅
+  img_5: '',  // ✅
+    img_6: '' // ✅ THÊM
 })
 
 const form = ref(emptyForm())
-
+const uploadingSubImg = ref({
+  img_1: false,
+  img_2: false,
+  img_3: false,
+  img_4: false,
+  img_5: false,
+   img_6: false
+})
 /* ================= LOAD NCC ================= */
 async function loadNCC() {
   try {
@@ -822,7 +1015,31 @@ function confirmCancel() {
   confirmBox.value.show = false
   confirmBox.value.resolve = null
 }
+async function handleSubImageUpload(e, fieldName) {
+  const file = e.target.files[0]
+  if (!file) return
 
+  uploadingSubImg.value[fieldName] = true
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
+    })
+    const json = await res.json()
+    if (!json.success) throw new Error('Upload imgbb failed')
+
+    form.value[fieldName] = json.data.url
+  } catch (err) {
+    console.error(err)
+    openNotify('❌ Lỗi', `Upload ${fieldName} thất bại`, 'error')
+  } finally {
+    uploadingSubImg.value[fieldName] = false
+    e.target.value = ''
+  }
+}
 /* ================= PAYLOAD ================= */
 function buildPayload() {
   return list.value.map((i) => ({
@@ -841,7 +1058,13 @@ function buildPayload() {
     Gia_ban: Number(i.Gia_ban || 0), // ✅
     Trang_thai: i.Trang_thai,
     Lang: i.Lang || 'vi',
-    Don_vi_tien_te: i.Don_vi_tien_te || 'VND'
+    Don_vi_tien_te: i.Don_vi_tien_te || 'VND',
+      img_1: i.img_1 || '', // ✅
+    img_2: i.img_2 || '', // ✅
+    img_3: i.img_3 || '', // ✅
+    img_4: i.img_4 || '', // ✅
+    img_5: i.img_5 || '' , // ✅
+        img_6: i.img_6 || '' // ✅ THÊM
   }))
 }
 
@@ -908,6 +1131,7 @@ watch(
 )
 
 /* ================= EXCEL IMPORT ================= */
+/* ================= EXCEL IMPORT (CẬP NHẬT) ================= */
 function importExcel(e) {
   const file = e.target.files[0]
   if (!file) return
@@ -939,7 +1163,15 @@ function importExcel(e) {
         Gia_ban: Number(r.Gia_ban || 0),
         Trang_thai: r.Trang_thai || 'Còn hàng',
         Lang: r.Lang || 'vi',
-        Don_vi_tien_te: r.Don_vi_tien_te || 'VND'
+        Don_vi_tien_te: r.Don_vi_tien_te || 'VND',
+        
+        // ✅ 6 ẢNH PHỤ TỪ EXCEL
+        img_1: r.img_1 || '',
+        img_2: r.img_2 || '',
+        img_3: r.img_3 || '',
+        img_4: r.img_4 || '',
+        img_5: r.img_5 || '',
+        img_6: r.img_6 || ''
       }
 
       if (item.Ten_hang && item.Ma_nha_cung_cap) list.value.push(item)
@@ -1109,6 +1341,34 @@ async function handleEditImageUpload(e) {
     e.target.value = ''
   }
 }
+
+async function handleEditSubImageUpload(e, fieldName) {
+  const file = e.target.files[0]
+  if (!file) return
+
+  uploadingEditSubImg.value[fieldName] = true
+  try {
+    const fd = new FormData()
+    fd.append('image', file)
+
+    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: fd
+    })
+    const json = await res.json()
+    if (!json.success) throw new Error('Upload failed')
+
+    editForm.value[fieldName] = json.data.url
+  } catch (err) {
+    console.error(err)
+    openNotify('❌ Lỗi', `Upload ${fieldName} thất bại`, 'error')
+  } finally {
+    uploadingEditSubImg.value[fieldName] = false
+    e.target.value = ''
+  }
+}
+
+const SUB_IMAGE_FIELDS = ['img_1', 'img_2', 'img_3', 'img_4', 'img_5', 'img_6']
 
 /* ================= MOBILE DETAIL ================= */
 function openDetail(i) {
@@ -1306,6 +1566,94 @@ h2 {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 12px;
+}
+
+.form-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.04), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 12px 44px rgba(2, 6, 23, 0.65);
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.25s ease;
+  backdrop-filter: blur(18px);
+}
+
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.panel:hover {
+  transform: translateY(-4px);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 18px 60px rgba(2, 6, 23, 0.7);
+}
+
+.panel:hover::after {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #e2e8f0;
+  margin-bottom: 14px;
+}
+
+.panel-header i {
+  font-size: 17px;
+  color: #22c55e;
+}
+
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-body.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel-body.panel-grid .field {
+  margin-bottom: 0;
+}
+
+.panel-body.panel-body--stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .form-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 16px;
+  }
 }
 
 .field label {
@@ -1705,6 +2053,41 @@ h2 {
   color: #64748b;
 }
 
+.sub-images-cell {
+  vertical-align: top;
+  padding-top: 8px;
+}
+
+.sub-image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sub-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  background: rgba(51, 65, 85, 0.4);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.sub-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sub-thumb.empty {
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .thumb.big {
   width: 58px;
   height: 58px;
@@ -1888,6 +2271,11 @@ h2 {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .sheet-head {
@@ -1903,6 +2291,28 @@ h2 {
   font-weight: 700;
   color: #f8fafc;
   font-size: 18px;
+}
+
+.sheet-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.sheet-empty {
+  margin: 12px 0;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  text-align: center;
+}
+
+.mini-tags {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .card-list {
@@ -2022,6 +2432,24 @@ h2 {
   border-top: 1px solid rgba(148, 163, 184, 0.15);
 }
 
+.detail-sub-images {
+  margin-top: 16px;
+}
+
+.detail-sub-images .sub-images-grid {
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+}
+
+.detail-sub-images .sub-thumb {
+  width: 100%;
+  height: 78px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.5);
+  display: grid;
+  place-items: center;
+}
+
 .desc {
   margin-top: 8px;
   line-height: 1.6;
@@ -2134,5 +2562,102 @@ h2 {
   .detail-img-null {
     height: 220px;
   }
+}
+
+/* ✅ SUB IMAGES GRID */
+.sub-images-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .sub-images-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.edit-sub-images {
+  margin: 16px 0;
+}
+
+.sub-images-grid.edit {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.sub-img-item {
+  position: relative;
+}
+
+.upload-wrap-mini {
+  position: relative;
+  border: 2px dashed rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.5);
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-wrap-mini input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.img-preview-mini {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.img-preview-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.btn-remove-mini {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 3;
+  line-height: 1;
+  padding: 0;
+}
+
+.btn-remove-mini:hover {
+  background: #dc2626;
+}
+
+.placeholder-mini {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  text-align: center;
+}
+
+.hint-mini {
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: center;
 }
 </style>

@@ -1,0 +1,13 @@
+const fs = require('fs');
+const path = 'src/views/nhapHang.vue';
+let data = fs.readFileSync(path, 'utf-8');
+const marker = '<option value= fil>';
+const markerIdx = data.indexOf(marker);
+if (markerIdx === -1) throw new Error('marker missing');
+const endIdx = data.indexOf('</option>', markerIdx);
+if (endIdx === -1) throw new Error('end tag missing');
+const insertPos = endIdx + '</option>'.length;
+const insertText = '\n                <option value=ko>Ti?ng Hàn (ko)</option>';
+if (data.includes(insertText)) throw new Error('already added');
+data = data.slice(0, insertPos) + insertText + data.slice(insertPos);
+fs.writeFileSync(path, data, 'utf-8');

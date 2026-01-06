@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   
   <div
   class="layout"
@@ -38,9 +38,14 @@
 
 
         <div class="categories">
-          <h4>{{ $t('menu.category') }}</h4>
+          <h4 class="category-title">
+    <i class="ri-list-check category-title-icon"></i>
+    {{ $t('menu.category') }}
+    <span v-if="hasSale" class="category-sale-badge">SALE</span>
+  </h4>
         <div
   v-for="c in categories"
+  style="text-transform: uppercase;"
   :key="c"
   class="cat"
   :class="{
@@ -175,17 +180,49 @@
 
 
       <!-- SEARCH -->
-<div class="search-wrapper">
+<div class="search-wrapper" ref="searchWrapperRef">
   <div class="search-box">
     <input
       v-model="keyword"
       type="text"
       :placeholder="$t('search.placeholder')"
       class="search-input"
+      @focus="showSearchSuggest = true"
+      @input="showSearchSuggest = true"
     />
+
+    <button
+      v-if="keyword"
+      class="search-clear-btn"
+      type="button"
+      @click.stop="closeSearchSuggest"
+      aria-label="Close search"
+    >
+      ✕
+    </button>
 
     <button class="search-btn" type="button">
       <i class="ri-search-line"></i>
+    </button>
+  </div>
+  <div
+    v-if="keyword && searchSuggestions.length && showSearchSuggest"
+    class="search-suggest"
+  >
+    <button
+      v-for="m in searchSuggestions"
+      :key="m.Ma_hang"
+      type="button"
+      class="suggest-item"
+      @click="openSuggestion(m)"
+    >
+      <img :src="m.Main_img" alt="" class="suggest-img" />
+      <div class="suggest-info">
+        <div class="suggest-name">{{ m.Ten_hang }}</div>
+        <div class="suggest-price">
+          {{ formatPrice(finalPrice(m), m.Don_vi_tien_te) }}
+        </div>
+      </div>
     </button>
   </div>
 <!-- ===== FILTER BAR ===== -->
@@ -257,7 +294,9 @@
 
 
 <div class="card-img-wrap">
-  <img :src="m.Main_img" alt="" />
+  <transition name="card-fade" mode="out-in">
+    <img :key="getCardImageKey(m)" :src="getCardImage(m)" alt="" />
+  </transition>
 
   <!-- TAG GIẢM GIÁ -->
   <div
@@ -434,35 +473,76 @@
   <div class="detail-title">
     {{ selectedItem?.Ten_hang }}
   </div>
+  <button
+    class="detail-add-btn"
+    type="button"
+    :disabled="selectedItem?.Trang_thai === 'H?t h…ng'"
+    @click.stop="addFromDetailSidebar"
+  >
+    {{ $t('menu.add') }}
+  </button>
 </div>
    <!-- ✅ ẢNH SẢN PHẨM (BỊ THIẾU) -->
     <div class="detail-image-wrap">
-      <img
-  :src="selectedItem?.Main_img"
-  class="detail-img clickable"
-  alt=""
-  @click="openImageModal(selectedItem.Main_img)"
-/>
-
+      <div class="detail-image-main">
+        <img
+          :src="modalImages[activeModalIndex] || selectedItem?.Main_img"
+          class="detail-img clickable"
+          alt=""
+          @click="openImageModal(modalImages[activeModalIndex] || selectedItem.Main_img)"
+        />
+        <button
+          v-if="modalImages.length > 1"
+          type="button"
+          class="detail-img-nav prev"
+          aria-label="Prev image"
+          @click.stop="prevModalImage"
+        >
+          <
+        </button>
+        <button
+          v-if="modalImages.length > 1"
+          type="button"
+          class="detail-img-nav next"
+          aria-label="Next image"
+          @click.stop="nextModalImage"
+        >
+          >
+        </button>
+      </div>
+      <div v-if="modalImages.length > 1" class="detail-thumbs">
+        <button
+          v-for="(img, idx) in modalImages"
+          :key="`${img}-${idx}`"
+          type="button"
+          class="detail-thumb"
+          :class="{ active: idx === activeModalIndex }"
+          @click.stop="setActiveModalImage(idx)"
+        >
+          <img :src="img" alt="" />
+        </button>
+      </div>
     </div>
 
     <!-- BODY (COPY 100% TỪ MODAL) -->
     <div class="detail-body modal-right">
 
-  <!-- TAG TRẠNG THÁI -->
-  <div
-    class="status-tag"
-    :class="{
-      available: selectedItem.Trang_thai === 'Còn hàng',
-      out: selectedItem.Trang_thai === 'Hết hàng'
-    }"
-  >
-    {{ selectedItem.Trang_thai }}
-  </div>
+  <div class="status-row">
+    <!-- TAG TRẠNG THÁI -->
+    <div
+      class="status-tag"
+      :class="{
+        available: selectedItem.Trang_thai === 'Còn hàng',
+        out: selectedItem.Trang_thai === 'Hết hàng'
+      }"
+    >
+      {{ selectedItem.Trang_thai }}
+    </div>
 
-  <!-- BADGE DANH MỤC -->
-  <div v-if="selectedItem.Danh_muc" class="meta-tag">
-    {{ $t('menu.category') }}: {{ selectedItem.Danh_muc }}
+    <!-- BADGE DANH MỤC -->
+    <div v-if="selectedItem.Danh_muc" class="meta-tag inline">
+      {{ $t('menu.category') }}: {{ selectedItem.Danh_muc }}
+    </div>
   </div>
 
   <!-- BADGE SIZE -->
@@ -550,7 +630,7 @@
   <i
     :class="[
       showCart
-        ? 'ri-arrow-right-circle-fill'
+        ? 'ri-close-circle-fill'
         : 'ri-shopping-cart-2-line',
       'toggle-icon'
     ]"
@@ -560,7 +640,11 @@
 
 
   <div v-if="showCart" class="sidebar-content cart-box">
-    <h3 style="color: green;font-weight: bold;">    <i class="ri-shopping-basket-2-fill"></i> {{ $t('cart.title') }}</h3>
+    <h3 style="color: green;font-weight: bold;">
+      <i class="ri-shopping-basket-2-fill"></i>
+      {{ $t('cart.title') }}
+      <span class="order-count">({{ cartQtyTotal }})</span>
+    </h3>
 
     <!-- ===== CHI TIẾT ĐƠN ===== -->
      <transition-group
@@ -647,7 +731,7 @@
     @click="showCKModal = true"
   >
 
-    CHUYỂN KHOẢN
+    BANKING<i class="ri-qr-code-fill"></i>
   </button>
 
   <div v-if="khuyenMaiNoiDung.length" class="khuyenmai-box km-inline">
@@ -694,21 +778,13 @@
     ></textarea>
   </div>
  <button
-  v-if="canFinish"
+  v-if="canFinish && !isMobile"
   class="finish-btn"
   @click="onFinish"
 >
   {{ $t('cart.finish') }}
 </button>
 <!-- 👈 NÚT QUAY LẠI (MOBILE ONLY) -->
-<button
-  v-if="isMobile"
-  class="back-btn"
-  @click="closeCartMobile"
->
-  {{ $t('cart.back') }}
-</button>
-
 </div>
 
 
@@ -719,7 +795,7 @@
   </div>
     <button
     class="scroll-top-fab"
-    v-show="showScrollTop"
+    v-show="showScrollTop && !isMobile"
     :title="$t('common.scrollTop')"
     @click="scrollToTop"
   >
@@ -738,14 +814,45 @@
 
     <div class="modal-content">
       <!-- ẢNH BÊN TRÁI -->
-      <div class="modal-left">
-       <img
-  :src="selectedItem.Main_img"
-  alt=""
-  class="modal-img clickable"
-  @click="openImageModal(selectedItem.Main_img)"
-/>
-
+      <div class="modal-media" :class="{ 'no-thumbs': !hasModalThumbs }">
+        <div class="modal-left">
+         <img
+    :src="modalImages[activeModalIndex] || selectedItem.Main_img"
+    alt=""
+    class="modal-img clickable"
+    @click="openImageModal(modalImages[activeModalIndex] || selectedItem.Main_img)"
+  />
+          <button
+            v-if="modalImages.length > 1"
+            type="button"
+            class="modal-img-nav prev"
+            aria-label="Prev image"
+            @click.stop="prevModalImage"
+          >
+            ‹
+          </button>
+          <button
+            v-if="modalImages.length > 1"
+            type="button"
+            class="modal-img-nav next"
+            aria-label="Next image"
+            @click.stop="nextModalImage"
+          >
+            ›
+          </button>
+        </div>
+        <div v-if="hasModalThumbs" class="modal-thumbs">
+          <button
+            v-for="(img, idx) in modalImages"
+            :key="`${img}-${idx}`"
+            type="button"
+            class="modal-thumb"
+            :class="{ active: idx === activeModalIndex }"
+            @click="setActiveModalImage(idx)"
+          >
+            <img :src="img" alt="" />
+          </button>
+        </div>
       </div>
 
       <!-- THÔNG TIN BÊN PHẢI -->
@@ -843,7 +950,7 @@
   class="modal-overlay"
   @click="showExportModal = false"
 >
-  <div class="modal-card" @click.stop>
+  <div class="modal-card export-modal" @click.stop>
     <button class="modal-close" @click="showExportModal = false">✕</button>
 
     <h3 class="export-title"><i class="ri-shopping-basket-2-fill"></i>{{ $t('export.title') }}</h3>
@@ -875,7 +982,8 @@
         class="send-btn"
         @click="sendToShop(c)"
       >
-         {{ $t('export.send') }} {{ c.PLATFORM_name }}
+        Gửi đơn qua
+        <img :src="c.URL_img" class="send-platform-img" alt="" />
       </button>
     </div>
 
@@ -892,23 +1000,39 @@
   <div class="modal-card" @click.stop>
     <button class="modal-close" @click="showCategoryModal = false">✕</button>
 
-    <h3 class="export-title"> {{ $t('modal.chooseCategory') }}</h3>
+    <h3 class="export-title category-modal-title">
+      <i class="ri-list-check category-title-icon"></i>
+      <span style="color:green;font-weight: bold;">{{ $t('modal.chooseCategory') }}</span>
+      <span
+        v-if="hasSale"
+        class="category-sale-badge"
+      >
+        SALE
+      </span>
+    </h3>
     
-    <div class="categories">
-  <div
-  v-for="c in categories"
-  :key="c"
-  class="cat"
-  :class="{
-    active: c === currentCategory,
-    sale: c === 'Sale'
-  }"
-  @click="selectCategory(c)"
->
-  {{ c }}
-</div>
+    <div class="categories modal-categories">
+      <div
+        v-for="c in categories"
+        :key="c"
+        class="cat"
+        :class="{
+          active: c === currentCategory,
+          sale: c === 'Sale'
+        }"
+        @click="selectCategory(c)"
+        
+      >
+        <span class="cat-label">{{ c }}</span>
 
-
+        <span
+        
+          v-if="c === 'Sale'"
+          class="category-sale-badge cat-sale-pill"
+        >
+          SALE
+        </span>
+      </div>
     </div>
   </div>
 </div>
@@ -947,6 +1071,15 @@
   </div>
 </div>
 </transition>
+
+<div
+  v-if="isMobile && showCart && canFinish"
+  class="mobile-finish-wrap"
+>
+  <button class="finish-btn" @click="onFinish">
+    {{ $t('cart.finish') }}
+  </button>
+</div>
 
 <div v-if="isMobile" class="mobile-bottom-bar">
   <!-- HOME -->
@@ -1195,7 +1328,74 @@
     </div>
   </div>
 </div>
+<!-- ===== MODAL HƯỚNG DẪN COPY + PASTE ===== -->
+<div v-if="showGuideModal" class="modal-overlay" @click="showGuideModal = false">
+  <div class="modal-card copy-guide-modal" @click.stop>
+    <button class="modal-close" @click="showGuideModal = false">✕</button>
 
+    <div class="guide-content">
+      <!-- ICON NỀN TẢNG -->
+      <img
+        :src="guideData.URL_img"
+        class="platform-icon"
+        alt=""
+      />
+
+      <!-- TITLE -->
+      <h3 class="guide-title">
+        📱 Hướng dẫn gửi đơn qua {{ guideData.PLATFORM_name }}
+      </h3>
+
+      <!-- STEPS -->
+      <div class="guide-steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-text">
+            ✅ Nội dung đơn hàng đã được <strong>copy tự động</strong>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-text">
+            Bấm nút <strong>"Mở {{ guideData.PLATFORM_name }}"</strong> bên dưới
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-text">
+            <strong>Dán</strong> (Paste) nội dung và gửi
+          </div>
+        </div>
+      </div>
+
+      <!-- PREVIEW ĐƠN HÀNG -->
+      <div class="order-preview">
+        <div class="preview-title">📋 Nội dung đã copy:</div>
+        <div class="preview-text">
+          {{ exportText.substring(0, 150) }}...
+        </div>
+      </div>
+
+      <!-- NÚT MỞ APP -->
+      <a 
+        :href="guideData.Direct_link"
+        target="_blank"
+        class="open-app-btn"
+        @click="showGuideModal = false"
+      >
+        <i class="ri-message-fill"></i>
+        Mở {{ guideData.PLATFORM_name }} ngay
+      </a>
+
+      <!-- NÚT COPY LẠI -->
+      <button class="copy-again-btn" @click="copyAgain">
+        📋 Copy lại nội dung
+      </button>
+    </div>
+  </div>
+</div>
 </template>
 
 <script setup>
@@ -1215,7 +1415,21 @@ watch(
   },
   { immediate: true }
 )
+// ===== THÊM VÀO PHẦN KHAI BÁO REF =====
+const showGuideModal = ref(false)
+const guideData = ref({})
 
+function showCopyGuideModal(contact) {
+  guideData.value = contact
+  showGuideModal.value = true
+}
+
+function copyAgain() {
+  navigator.clipboard.writeText(exportText.value)
+    .then(() => {
+      alert('✅ Đã copy lại nội dung!')
+    })
+}
 const languages = [
   {
     code: 'vi',
@@ -1247,6 +1461,8 @@ const languages = [
 ]
 
 const showLangModal = ref(false)
+const showSearchSuggest = ref(false)
+const searchWrapperRef = ref(null)
 const currentLang = computed(() => route.params.lang || 'vi')
 const langLoading = ref(false)
 /* ===== CONFIG ===== */
@@ -1317,6 +1533,17 @@ watch(isMobile, (v) => {
   if (v) {
     showCategories.value = false
   }
+})
+
+function onDocumentClick(e) {
+  if (!searchWrapperRef.value) return
+  if (!searchWrapperRef.value.contains(e.target)) {
+    closeSearchSuggest()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
 })
 onMounted(() => {
   const savedLang = localStorage.getItem('APP_LANG')
@@ -1561,14 +1788,12 @@ const filteredMenu = computed(() => {
   let list = [...menu.value]
 
   // CATEGORY
- // CATEGORY
-if (currentCategory.value === 'Sale') {
-  list = list.filter(m => isDiscount(m))
-}
-else if (currentCategory.value !== 'Tất cả') {
-  list = list.filter(m => m.Danh_muc === currentCategory.value)
-}
-
+  if (currentCategory.value === 'Sale') {
+    list = list.filter(m => isDiscount(m))
+  }
+  else if (currentCategory.value !== 'Tất cả') {
+    list = list.filter(m => m.Danh_muc === currentCategory.value)
+  }
 
   // SEARCH
   if (keyword.value) {
@@ -1579,16 +1804,29 @@ else if (currentCategory.value !== 'Tất cả') {
   }
 
   // SORT
-if (priceSort.value === 'asc') {
-  list.sort((a, b) => finalPrice(a) - finalPrice(b))
-} 
-else if (priceSort.value === 'desc') {
-  list.sort((a, b) => finalPrice(b) - finalPrice(a))
-}
-
-  // all → không sort
+  if (priceSort.value === 'asc') {
+    list.sort((a, b) => finalPrice(a) - finalPrice(b))
+  } 
+  else if (priceSort.value === 'desc') {
+    list.sort((a, b) => finalPrice(b) - finalPrice(a))
+  }
+  else {
+    // 🔥 CHỈ ĐẢO NGƯỢC KHI KHÔNG SORT GIÁ
+    list.reverse()
+  }
 
   return list
+})
+
+const searchSuggestions = computed(() => {
+  const kw = (keyword.value || '').trim().toLowerCase()
+  if (!kw) return []
+
+  return menu.value
+    .filter((m) =>
+      (m.Ten_hang || '').toLowerCase().includes(kw)
+    )
+    .slice(0, 12)
 })
 
 let sortScrollTimer = null
@@ -1617,11 +1855,6 @@ let searchScrollTimer = null
 
 watch(keyword, () => {
   currentPage.value = 1
-  clearTimeout(searchScrollTimer)
-
-  searchScrollTimer = setTimeout(() => {
-    scrollToTop()
-  }, 120)
 })
 
 watch(
@@ -1648,6 +1881,9 @@ const cartItems = computed(() => {
 
   return items.sort((a, b) => a.addedTime - b.addedTime)
 })
+const cartQtyTotal = computed(() =>
+  cartItems.value.reduce((sum, i) => sum + i.qty, 0)
+)
 
 
 const totalAmount = computed(() =>
@@ -1784,7 +2020,29 @@ function copy() {
   }, 2000)
 }
 
+// ===== HÀM GỬI SHOP - XỬ LÝ COPY CHO NỀN TẢNG KHÔNG HỖ TRỢ =====
 function sendToShop(c) {
+  const platform = (c.PLATFORM_name || '').toLowerCase()
+
+  // ===== KIỂM TRA NỀN TẢNG CẦN COPY =====
+  const needsCopy = PLATFORMS_NEED_COPY.some(p => platform.includes(p))
+
+  if (needsCopy) {
+    // Copy text vào clipboard
+    navigator.clipboard.writeText(exportText.value)
+      .then(() => {
+        // Hiện modal hướng dẫn
+        showCopyGuideModal(c)
+      })
+      .catch(() => {
+        // Fallback: chỉ mở link
+        window.open(c.Direct_link, '_blank')
+      })
+    
+    return
+  }
+
+  // ===== NỀN TẢNG HỖ TRỢ PREFILL =====
   const url = buildSendLink(c)
   window.open(url, '_blank')
 }
@@ -1915,11 +2173,124 @@ if (!cart.value[m.Ma_hang]) {
 
 const showDetail = ref(false)
 const selectedItem = ref(null)
+const supplementaryImageKeys = ['img_1', 'img_2', 'img_3', 'img_4', 'img_5', 'img_6']
+const cardImageIndex = ref({})
+let cardImageTimer = null
+const CARD_IMAGE_INTERVAL = 2600
+const activeModalIndex = ref(0)
+const modalImages = computed(() => getModalImages(selectedItem.value))
+const hasModalThumbs = computed(() => modalImages.value.length > 1)
 // sidebar mới (mobile)
 const showDetailSidebar = ref(false)
 
+function getItemImages(item) {
+  if (!item) return []
+  return [
+    item.Main_img,
+    ...supplementaryImageKeys.map((key) => item[key])
+  ].filter(Boolean)
+}
+
+function getModalImages(item) {
+  return getItemImages(item)
+}
+
+function getCardImageIndex(item) {
+  const id = item?.Ma_hang
+  if (!id) return 0
+  return cardImageIndex.value[id] || 0
+}
+
+function getCardImage(item) {
+  const images = getItemImages(item)
+  if (!images.length) return ''
+  const idx = getCardImageIndex(item)
+  return images[idx] || images[0]
+}
+
+function getCardImageKey(item) {
+  const id = item?.Ma_hang || 'item'
+  return `${id}-${getCardImageIndex(item)}`
+}
+
+function resetCardImageIndex(item) {
+  const id = item?.Ma_hang
+  if (!id) return
+  cardImageIndex.value[id] = 0
+}
+
+function advanceCardImages() {
+  pagedMenu.value.forEach((item) => {
+    const images = getItemImages(item)
+    if (images.length <= 1) {
+      resetCardImageIndex(item)
+      return
+    }
+    const id = item.Ma_hang
+    const current = cardImageIndex.value[id] || 0
+    cardImageIndex.value[id] = (current + 1) % images.length
+  })
+}
+
+function startCardImageAuto() {
+  stopCardImageAuto()
+  cardImageTimer = setInterval(() => {
+    advanceCardImages()
+  }, CARD_IMAGE_INTERVAL)
+}
+
+function stopCardImageAuto() {
+  if (cardImageTimer) {
+    clearInterval(cardImageTimer)
+    cardImageTimer = null
+  }
+}
+
+watch(
+  () => pagedMenu.value,
+  (list) => {
+    if (!list || !list.length) {
+      stopCardImageAuto()
+      return
+    }
+
+    list.forEach(resetCardImageIndex)
+
+    const hasAuto = list.some(
+      (item) => getItemImages(item).length > 1
+    )
+
+    if (hasAuto) {
+      startCardImageAuto()
+    } else {
+      stopCardImageAuto()
+    }
+  },
+  { immediate: true }
+)
+
+function setActiveModalImage(index) {
+  if (index >= 0 && index < modalImages.value.length) {
+    activeModalIndex.value = index
+  }
+}
+
+function nextModalImage() {
+  const total = modalImages.value.length
+  if (!total) return
+  activeModalIndex.value = (activeModalIndex.value + 1) % total
+}
+
+function prevModalImage() {
+  const total = modalImages.value.length
+  if (!total) return
+  activeModalIndex.value =
+    (activeModalIndex.value - 1 + total) % total
+}
+
 function openDetail(m) {
   selectedItem.value = m
+  activeModalIndex.value = 0
 
   if (isMobile.value) {
     // 📱 MOBILE → mở sidebar
@@ -1931,14 +2302,26 @@ function openDetail(m) {
 }
 
 
+function openSuggestion(m) {
+  showSearchSuggest.value = false
+  openDetail(m)
+}
+
 function closeDetail() {
   showDetail.value = false
   selectedItem.value = null
+  activeModalIndex.value = 0
+}
+
+function closeSearchSuggest() {
+  keyword.value = ''
+  showSearchSuggest.value = false
 }
 
 function closeDetailSidebar() {
   showDetailSidebar.value = false
   selectedItem.value = null
+  activeModalIndex.value = 0
 }
 
 
@@ -1965,26 +2348,111 @@ const khuyenMaiNoiDung = computed(() =>
   ]
 )
 
+// ===== DANH SÁCH NỀN TẢNG CẦN COPY + PASTE =====
+const PLATFORMS_NEED_COPY = ['zalo', 'wechat', 'instagram', 'ig']
+
 function buildSendLink(c) {
   const text = encodeURIComponent(exportText.value)
+  const platform = (c.PLATFORM_name || '').toLowerCase()
 
-  // Telegram
-  if (c.PLATFORM_name.toLowerCase().includes('telegram')) {
-    // username hoặc link t.me
-    return `${c.Direct_link}?text=${text}`
+  // ==========================================
+  // 📱 TELEGRAM
+  // ==========================================
+  if (platform.includes('telegram') || platform.includes('tele')) {
+    return c.Direct_link.includes('?')
+      ? `${c.Direct_link}&text=${text}`
+      : `${c.Direct_link}?text=${text}`
   }
 
-  // Zalo (zalo.me/chat?msg=...)
-  if (c.PLATFORM_name.toLowerCase().includes('zalo')) {
-    return `${c.Direct_link}?msg=${text}`
-  }
-
-  // Facebook Messenger (fallback – chỉ mở chat)
-  if (c.PLATFORM_name.toLowerCase().includes('facebook')) {
+  // ==========================================
+  // 📱 VIBER
+  // ==========================================
+  if (platform.includes('viber')) {
+    if (c.Direct_link.includes('viber://')) {
+      return c.Direct_link.includes('?')
+        ? `${c.Direct_link}&text=${text}`
+        : `${c.Direct_link}?text=${text}`
+    }
     return c.Direct_link
   }
 
-  // Mặc định
+  // ==========================================
+  // 📱 ZALO (KHÔNG PREFILL - DÙNG COPY)
+  // ==========================================
+  if (platform.includes('zalo')) {
+    // Zalo không hỗ trợ prefill -> xử lý riêng
+    return c.Direct_link
+  }
+
+  // ==========================================
+  // 📱 FACEBOOK MESSENGER
+  // ==========================================
+  if (platform.includes('facebook') || platform.includes('messenger')) {
+    if (c.Direct_link.includes('m.me/')) {
+      return c.Direct_link.includes('?')
+        ? `${c.Direct_link}&text=${text}`
+        : `${c.Direct_link}?text=${text}`
+    }
+    
+    if (c.Direct_link.includes('facebook.com/')) {
+      const username = c.Direct_link.split('facebook.com/')[1].replace('/', '')
+      return `https://m.me/${username}?text=${text}`
+    }
+    
+    return c.Direct_link
+  }
+
+  // ==========================================
+  // ☎️ SMS
+  // ==========================================
+  if (platform.includes('sms') || platform.includes('tin nhắn')) {
+    const phone = c.INFO || c.Direct_link.replace('sms:', '')
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const separator = isIOS ? '&' : '?'
+    
+    return `sms:${phone}${separator}body=${text}`
+  }
+
+  // ==========================================
+  // 📱 WECHAT (KHÔNG PREFILL)
+  // ==========================================
+  if (platform.includes('wechat') || platform.includes('weixin')) {
+    return `weixin://`
+  }
+
+  // ==========================================
+  // 📱 WHATSAPP
+  // ==========================================
+  if (platform.includes('whatsapp') || platform.includes('wa')) {
+    return c.Direct_link.includes('?')
+      ? `${c.Direct_link}&text=${text}`
+      : `${c.Direct_link}?text=${text}`
+  }
+
+  // ==========================================
+  // 📱 LINE
+  // ==========================================
+  if (platform.includes('line')) {
+    return `https://line.me/R/msg/text/?${text}`
+  }
+
+  // ==========================================
+  // 📱 KAKAOTALK
+  // ==========================================
+  if (platform.includes('kakao')) {
+    return `kakaotalk://send?text=${text}`
+  }
+
+  // ==========================================
+  // 📱 INSTAGRAM (KHÔNG PREFILL)
+  // ==========================================
+  if (platform.includes('instagram') || platform.includes('ig')) {
+    return c.Direct_link
+  }
+
+  // ==========================================
+  // 🔗 MẶC ĐỊNH
+  // ==========================================
   return c.Direct_link
 }
 const menuRef = ref(null)
@@ -2281,6 +2749,8 @@ watch(
 
 onUnmounted(() => {
   stopBannerAuto()
+  stopCardImageAuto()
+  document.removeEventListener('click', onDocumentClick)
   if (mainRef.value) {
     mainRef.value.removeEventListener('scroll', updateScrollTopVisibility)
   }
@@ -2435,6 +2905,7 @@ const hasSale = computed(() =>
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   z-index: 20;
 
   box-shadow: 
@@ -2469,6 +2940,8 @@ const hasSale = computed(() =>
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  position: relative;
+  overflow: hidden;
 
   padding: 14px 10px 18px;
   margin: 8px 6px 18px;
@@ -2536,6 +3009,35 @@ const hasSale = computed(() =>
     0 14px 36px rgba(0,0,0,0.35);
   transform: translateY(-1px);
   transition: all 0.25s ease;
+}
+
+@media (min-width: 769px) {
+  .logo-box {
+    isolation: isolate;
+  }
+
+  .logo-box::after {
+    content: '';
+    position: absolute;
+    inset: -45%;
+    background: linear-gradient(
+      135deg,
+      transparent 42%,
+      rgba(255, 255, 255, 0.65) 50%,
+      rgba(255, 255, 255, 0.15) 58%,
+      transparent 66%
+    );
+    transform: translate3d(-140%, -140%, 0);
+    animation: logoShimmer 4s ease-in-out infinite;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+}
+
+@keyframes logoShimmer {
+  0% { transform: translate3d(-140%, -140%, 0); }
+  55% { transform: translate3d(120%, 120%, 0); }
+  100% { transform: translate3d(160%, 160%, 0); }
 }
 
 .categories .cat {
@@ -2650,7 +3152,7 @@ const hasSale = computed(() =>
   aspect-ratio: 21 / 7;   /* 👈 GIỮ KÍCH THƯỚC NHƯ HIỆN TẠI */
   flex-shrink: 0;         /* 🔥 KHÔNG BỊ CO KHI MAIN SCROLL */
 
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
 
   display: flex;
@@ -2668,7 +3170,7 @@ const hasSale = computed(() =>
 .banner img {
   width: 100%;
   height: 100%;
-  border-radius: 16px; 
+  border-radius: 12px; 
   object-fit: contain;   /* 🔥 KHÔNG CẮT – GIỐNG CARD */
   object-position: center;
 border-radius: inherit; /* 👈 bo theo cha */
@@ -2684,6 +3186,16 @@ border-radius: inherit; /* 👈 bo theo cha */
 
 .banner-fade-enter-from,
 .banner-fade-leave-to {
+  opacity: 0;
+}
+
+.card-fade-enter-active,
+.card-fade-leave-active {
+  transition: opacity 0.35s ease;
+}
+
+.card-fade-enter-from,
+.card-fade-leave-to {
   opacity: 0;
 }
 
@@ -2956,30 +3468,26 @@ transition: background 0.2s ease, transform 0.1s ease;
   margin-bottom: 4px;
 }
 
-/* ===== EXPORT TEXTAREA – GREEN THEME ===== */
+/* ===== EXPORT TEXTAREA - PRO ===== */
 .export {
   width: 100%;
-  margin-top: 8px;
-  padding: 12px;
+  margin-top: 10px;
+  padding: 14px 14px;
 
-  border-radius: 14px;
-  border: 2px solid #22c55e;
+  border-radius: 12px;
+  border: 2px solid #065f46;
 
-  background: linear-gradient(
-    135deg,
-    #ecfdf5,
-    #d1fae5
-  );
+  background: #ffffff;
 
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.45;
+  line-height: 1.55;
 
-  color: #065f46; /* xanh đậm */
+  color: #065f46;
 
   box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.06),
-    0 6px 16px rgba(22, 163, 74, 0.25);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 8px 20px rgba(15, 23, 42, 0.08);
 
   outline: none;
   resize: none;
@@ -2987,10 +3495,10 @@ transition: background 0.2s ease, transform 0.1s ease;
 .export:focus {
   border-color: #16a34a;
   box-shadow:
-    0 0 0 3px rgba(22, 163, 74, 0.25),
-    inset 0 2px 6px rgba(0, 0, 0, 0.05);
+    0 0 0 3px rgba(22, 163, 74, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
-/* ===== SCROLLBAR GREEN – EXPORT TEXTAREA ===== */
+/* ===== SCROLLBAR - EXPORT TEXTAREA ===== */
 
 /* Chrome, Edge, Safari */
 .export::-webkit-scrollbar {
@@ -3003,27 +3511,19 @@ transition: background 0.2s ease, transform 0.1s ease;
 }
 
 .export::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    #22c55e,
-    #16a34a
-  );
+  background: #cbd5e1;
   border-radius: 999px;
-  border: 2px solid #ecfdf5;
+  border: 2px solid #f8fafc;
 }
 
 .export::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    180deg,
-    #16a34a,
-    #15803d
-  );
+  background: #94a3b8;
 }
 
 /* Firefox */
 .export {
   scrollbar-width: thin;
-  scrollbar-color: #22c55e #ecfdf5;
+  scrollbar-color: #cbd5e1 #f8fafc;
 }
 
 .copy-btn {
@@ -3149,6 +3649,79 @@ h3, h4, h5, p, span, div {
     0 10px 26px rgba(22, 163, 74, 0.45);
 }
 
+/* SEARCH SUGGEST */
+.search-suggest {
+  max-width: 420px;
+  margin: 8px auto 0;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.search-suggest::-webkit-scrollbar {
+  width: 8px;
+}
+
+.search-suggest::-webkit-scrollbar-thumb {
+  background: rgba(22, 163, 74, 0.35);
+  border-radius: 999px;
+}
+
+.search-suggest::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.suggest-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.suggest-item:hover {
+  background: #ecfdf5;
+}
+
+.suggest-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f3f4f6;
+}
+
+.suggest-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.suggest-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #065f46;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggest-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: #15803d;
+}
+
 /* INPUT */
 .search-input {
   flex: 1;
@@ -3195,6 +3768,37 @@ h3, h4, h5, p, span, div {
 /* click */
 .search-btn:active {
   transform: scale(0.95);
+}
+
+.search-clear-btn {
+  width: 32px;
+  height: 32px;
+  margin-right: 6px;
+
+  border-radius: 50%;
+  border: none;
+
+  background: #ef4444;
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 900;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.45);
+  transition: all 0.18s ease;
+}
+
+.search-clear-btn:hover {
+  transform: scale(1.05);
+}
+
+.search-clear-btn:active {
+  transform: scale(0.94);
 }
 
 .banner {
@@ -3447,6 +4051,16 @@ h3, h4, h5, p, span, div {
     0 0 0 3px rgba(34, 197, 94, 0.15);
 }
 
+.modal-card.export-modal {
+  width: min(680px, 90vw);
+  max-height: 88vh;
+}
+
+.modal-card.export-modal .export {
+  min-height: 320px;
+  max-height: 58vh;
+}
+
 @keyframes modalPopFast {
   from {
     transform: scale(0.97);
@@ -3513,7 +4127,7 @@ h3, h4, h5, p, span, div {
 .modal-title {
   font-size: 18px;
   font-weight: 800;
-  margin: 6px 0;
+  margin: 6px 0 2px;
 }
 
 .modal-desc {
@@ -3582,17 +4196,235 @@ h3, h4, h5, p, span, div {
   margin-bottom: 12px;
 }
 
+@media (min-width: 769px) {
+  .modal-card.modal-wide {
+    width: min(1040px, 94vw);
+    max-height: 86vh;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 2px solid #16a34a;
+    box-shadow:
+      0 30px 70px rgba(0, 0, 0, 0.28),
+      0 0 0 1px rgba(22, 163, 74, 0.2),
+      inset 0 0 0 2px rgba(22, 163, 74, 0.3);
+  }
+
+  .modal-card.modal-wide .modal-content {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 22px;
+    padding: 20px;
+    align-items: stretch;
+    height: 100%;
+  }
+
+  .modal-card.modal-wide .modal-media {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 560px;
+  }
+
+  .modal-card.modal-wide .modal-media.no-thumbs {
+    height: 500px;
+  }
+
+  .modal-card.modal-wide .modal-left {
+    border-radius: 16px;
+    border: 2px solid #16a34a;
+    background: radial-gradient(circle at top, #f0fdf4, #f8fafc 60%, #ffffff);
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 490px;
+    position: relative;
+  }
+
+  .modal-card.modal-wide .modal-media.no-thumbs .modal-left {
+    height: 500px;
+  }
+
+  .modal-card.modal-wide .modal-left .modal-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  }
+
+  .modal-card.modal-wide .modal-img-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(22, 163, 74, 0.45);
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #ffffff;
+    font-size: 22px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 18px rgba(22, 163, 74, 0.35);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  }
+
+  .modal-card.modal-wide .modal-img-nav.prev {
+    left: 10px;
+  }
+
+  .modal-card.modal-wide .modal-img-nav.next {
+    right: 10px;
+  }
+
+  .modal-card.modal-wide .modal-img-nav:hover {
+    transform: translateY(-50%) scale(1.06);
+    box-shadow: 0 12px 24px rgba(22, 163, 74, 0.45);
+    filter: brightness(1.05);
+  }
+
+  .modal-card.modal-wide .modal-img-nav:active {
+    transform: translateY(-50%) scale(0.98);
+    box-shadow: 0 6px 14px rgba(22, 163, 74, 0.3);
+  }
+
+  .modal-card.modal-wide .modal-thumbs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: flex-start;
+    width: 100%;
+    height: 60px;
+    padding: 0 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .modal-card.modal-wide .modal-thumb {
+    width: 68px;
+    height: 54px;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 118, 51, 0.2);
+    background: #ffffff;
+    overflow: hidden;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .modal-card.modal-wide .modal-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .modal-card.modal-wide .modal-thumb:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.14);
+  }
+
+  .modal-card.modal-wide .modal-thumb.active {
+    border-color: #16a34a;
+    box-shadow:
+      0 0 0 2px rgba(22, 163, 74, 0.2),
+      0 6px 14px rgba(22, 163, 74, 0.2);
+  }
+
+  .modal-card.modal-wide .modal-right {
+    padding: 6px 8px 10px;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .modal-card.modal-wide .modal-title {
+    font-size: 24px;
+    line-height: 1.3;
+    letter-spacing: -0.2px;
+  }
+
+  .modal-card.modal-wide .modal-desc {
+    font-size: 14px;
+    color: #4b5563;
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .modal-card.modal-wide .modal-price {
+    justify-content: flex-end;
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .modal-card.modal-wide .modal-qty {
+    justify-content: center;
+  }
+
+  .modal-card.modal-wide .form-field textarea {
+    background: #f8fafc;
+    border-color: #e5e7eb;
+    border-radius: 12px;
+  }
+
+  .modal-card.modal-wide .add-btn {
+    margin-top: 6px;
+    border-radius: 10px;
+    box-shadow:
+      0 6px 14px rgba(22, 163, 74, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+
+  .modal-card.modal-wide .add-btn:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow:
+      0 14px 28px rgba(22, 163, 74, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  }
+
+  .modal-card.modal-wide .add-btn:active {
+    transform: translateY(0) scale(0.99);
+    box-shadow:
+      0 6px 14px rgba(22, 163, 74, 0.2),
+      inset 0 2px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .modal-card.modal-wide .modal-close {
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background: #ffffff;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .modal-card.modal-wide .modal-close:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
 /* TAG DANH MỤC / SIZE */
 .meta-tag {
   display: inline-block;
   width: fit-content;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #bbf7d0;
+  background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+  color: #065f46;
+  border: 1px solid rgba(22, 163, 74, 0.25);
+}
+.meta-tag.inline {
+  margin: 0 0 0 8px;
 }
 
 
@@ -3617,6 +4449,12 @@ h3, h4, h5, p, span, div {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+.order-count {
+  margin-left: 8px;
+  color: #e61313;
+  font-weight: 900;
+  font-size: 13px;
 }
 
 /* ===== LIST ===== */
@@ -3708,17 +4546,6 @@ h3, h4, h5, p, span, div {
   font-size: 13px;
 }
 
-/* TEXTAREA */
-.export {
-  margin-top: 8px;
-  width: 100%;
-  border-radius: 10px;
-  padding: 10px;
-font-size: 11px;
-  line-height: 1.35;
-  background: #f9fafb;
-}
-
 /* COPY */
 .copy-btn {
   margin-top: 8px;
@@ -3770,6 +4597,7 @@ font-size: 11px;
   font-size: 12px;
   color: #6b7280;
   font-weight: 600;
+  text-decoration: underline;
 }
 
 /* ===== FORM FIELD ===== */
@@ -3783,7 +4611,8 @@ font-size: 11px;
   font-size: 11.5px;
   font-weight: 700;
   margin-bottom: 4px;
-  color: #065f46; /* xanh đậm dễ nhìn */
+  color: #0e6902; /* xanh đậm dễ nhìn */
+  text-transform: uppercase;
 }
 
 /* INPUT + TEXTAREA CHUNG */
@@ -4049,6 +4878,32 @@ font-size: 11px;
 .categories h4 {
   color: #047857;
   font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  margin: 0 0 8px;
+}
+
+.category-title-icon {
+  font-size: 18px;
+  color: #047857;
+}
+
+.category-sale-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.35);
+  animation: saleGlow 2.2s ease-in-out infinite;
 }
 
 .categories .cat {
@@ -4058,7 +4913,7 @@ font-size: 11px;
 
 /* hover */
 .categories .cat:hover {
-  background: #ecfdf5;
+  background: #00ff88;
 }
 
 /* active */
@@ -4084,6 +4939,85 @@ font-size: 11px;
   height: 18px;
   border-radius: 4px;
   background: #fef08a;
+}
+@media (min-width: 769px) {
+  .sidebar-left .categories {
+    padding: 16px;
+    background: linear-gradient(145deg, #f8fafc 0%, #ffffff 55%, #e6f7ed 100%);
+    border: 1px solid rgba(4, 120, 87, 0.12);
+    box-shadow:
+      0 14px 30px rgba(15, 23, 42, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  }
+
+  .sidebar-left .categories h4 {
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #065f46;
+  }
+
+  .sidebar-left .categories h4::before {
+    content: none;
+    display: none;
+  }
+
+  .sidebar-left .categories .cat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px 10px 34px;
+    margin: 6px 0;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #065f46;
+    border: 1px solid transparent;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+    transition:
+      transform 0.16s ease,
+      box-shadow 0.2s ease,
+      border-color 0.16s ease,
+      background 0.2s ease;
+  }
+
+  .sidebar-left .categories .cat:hover {
+    transform: translateY(-1px);
+    border-color: rgba(34, 197, 94, 0.25);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+    background: #f7fff9;
+  }
+
+  .sidebar-left .categories .cat::before {
+    left: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow:
+      0 0 0 2px rgba(34, 197, 94, 0.2),
+      0 6px 12px rgba(34, 197, 94, 0.25);
+    animation: catPulse 1.2s ease-in-out infinite;
+  }
+
+  .sidebar-left .categories .cat.active {
+    border-color: transparent;
+    background: linear-gradient(135deg, #16a34a, #0f9f58);
+    color: #ffffff;
+    box-shadow: 0 14px 30px rgba(16, 185, 129, 0.35);
+  }
+
+  .sidebar-left .categories .cat.active::before {
+    background: #fef08a;
+    box-shadow:
+      0 0 0 3px rgba(254, 240, 138, 0.6),
+      0 10px 18px rgba(15, 23, 42, 0.15);
+    animation: catPulseActive 0.9s ease-in-out infinite;
+  }
 }
 /* KHUNG THÔNG BÁO */
 .notice {
@@ -4115,6 +5049,20 @@ font-size: 11px;
   to {
     transform: translateX(-100%);
   }
+}
+
+@keyframes catPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6), 0 0 8px rgba(34,197,94,0.25); }
+  45% { box-shadow: 0 0 0 6px rgba(34,197,94,0.35), 0 0 12px rgba(34,197,94,0.35); }
+  80% { box-shadow: 0 0 0 2px rgba(34,197,94,0.25), 0 0 6px rgba(34,197,94,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0), 0 0 0 rgba(34,197,94,0); }
+}
+
+@keyframes catPulseActive {
+  0% { box-shadow: 0 0 0 0 rgba(254,240,138,0.8), 0 0 10px rgba(254,240,138,0.55); }
+  40% { box-shadow: 0 0 0 7px rgba(254,240,138,0.55), 0 0 14px rgba(254,240,138,0.4); }
+  75% { box-shadow: 0 0 0 10px rgba(254,240,138,0.35), 0 0 10px rgba(254,240,138,0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(254,240,138,0), 0 0 0 rgba(254,240,138,0); }
 }
 
 /* hover pause */
@@ -4227,7 +5175,7 @@ font-size: 11px;
 .notice-text {
   font-size: 14px;
   font-weight: 600;
-  color: #ecfdf5;
+  color: #00ff88;
 
   text-shadow:
     0 1px 3px rgba(0,0,0,0.45);
@@ -4371,6 +5319,36 @@ font-size: 11px;
   background: white;
   color: #009e47;
 }
+.mobile-finish-wrap {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 82px;
+  bottom: calc(70px + 12px + env(safe-area-inset-bottom));
+  z-index: 1095;
+}
+
+.mobile-finish-wrap .finish-btn {
+  margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  .sidebar-right {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar-right .sidebar-content {
+    padding-bottom: 140px; /* space for mobile bottom bar + finish button */
+  }
+
+  /* Cart list: cap at ~3 items and allow scroll */
+  .cart-list {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+}
 .export-title {
   font-size: 16px;
   font-weight: 900;
@@ -4391,6 +5369,7 @@ font-size: 11px;
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
+  align-items: center;
 }
 
 .send-btn {
@@ -4409,6 +5388,13 @@ font-size: 11px;
   color: #ffffff;
   font-size: 14px;
   font-weight: 800;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-transform: uppercase;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 
   cursor: pointer;
 
@@ -4425,13 +5411,22 @@ font-size: 11px;
   transform: scale(0.96);
 }
 
+.send-platform-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
 /* ===== COPY BTN ===== */
 .copy-btn {
   margin-top: 10px;
-  width: 100%;
-  padding: 10px;
+  width: 50%;
+  max-width: 240px;
+  padding: 6px 10px;
 
-  border-radius: 12px;
+  border-radius: 999px;
   border: none;
 
   background: linear-gradient(
@@ -4441,10 +5436,12 @@ font-size: 11px;
   );
 
   color: #ffffff;
-  font-weight: 900;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 12px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
   cursor: pointer;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.35);
   transition: all 0.2s ease;
 }
 
@@ -4862,6 +5859,7 @@ font-size: 11px;
   /* ===== TẮT GRID DESKTOP ===== */
   .layout {
     display: block !important;
+    min-height: 100vh;
   }
 
   .layout.hide-left,
@@ -4876,6 +5874,7 @@ font-size: 11px;
     max-width: 100% !important;
     padding-bottom: 90px; /* chừa chỗ bottom bar */
      padding-top: 0;
+     min-height: 100vh;
      
   }
     .pagination {
@@ -4886,7 +5885,7 @@ font-size: 11px;
   aspect-ratio: 16 / 9;
   margin: 0 auto 12px;
 
-  border-radius: 20px;
+  border-radius: 12px;
   overflow: hidden;
 
   box-shadow: 0 0 24px rgba(168, 250, 168, 0.45);
@@ -4947,6 +5946,9 @@ font-size: 11px;
 
   width: 100vw;
   max-width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 
   transform: translateX(100%); /* 👈 nằm ngoài bên phải */
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4958,6 +5960,10 @@ font-size: 11px;
   transform: translateX(0); /* 👈 trượt vào từ phải */
 }
 
+
+  .sidebar-right .sidebar-content {
+    padding-bottom: calc(140px + env(safe-area-inset-bottom)); /* chừa chỗ bottom bar + nút hoàn tất */
+  }
 
   /* ===== MOBILE KHÔNG DÙNG display:none ===== */
   .sidebar-left.collapsed .sidebar-content,
@@ -5009,6 +6015,10 @@ font-size: 11px;
   }
   /* giới hạn chiều cao modal */
 .detail-back {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -5026,7 +6036,7 @@ font-size: 11px;
 }
 
 .detail-back:active {
-  transform: scale(0.9);
+  transform: translateY(-50%) scale(0.9);
 }
 
   .modal-card {
@@ -5051,6 +6061,134 @@ font-size: 11px;
 
     border-radius: 14px;
     background: #f9fafb;
+  }
+
+  /* category modal header + list aligns with desktop layout */
+  .category-modal-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+    color: #065f46;
+    font-weight: 900;
+  }
+
+  .modal-card .modal-categories {
+    background: linear-gradient(145deg, #f8fafc 0%, #ffffff 55%, #ecfdf3 100%);
+    border: 1px solid rgba(4, 120, 87, 0.12);
+    box-shadow:
+      0 12px 24px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+
+  .modal-card .modal-categories .cat {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 12px 12px 12px 34px;
+    margin: 6px 0;
+
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #065f46;
+    border: 1px solid transparent;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  }
+
+  .modal-card .modal-categories .cat::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 10px;
+    height: 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow:
+      0 0 0 2px rgba(34, 197, 94, 0.2),
+      0 6px 12px rgba(34, 197, 94, 0.25);
+    animation: catPulse 1.2s ease-in-out infinite;
+  }
+
+  .modal-card .modal-categories .cat.active {
+    border-color: transparent;
+    background: linear-gradient(135deg, #16a34a, #0f9f58);
+    color: #ffffff;
+    box-shadow: 0 14px 30px rgba(16, 185, 129, 0.35);
+  }
+
+  .modal-card .modal-categories .cat.active::before {
+    background: #fef08a;
+    box-shadow:
+      0 0 0 3px rgba(254, 240, 138, 0.6),
+      0 10px 18px rgba(15, 23, 42, 0.15);
+    animation: catPulseActive 0.9s ease-in-out infinite;
+  }
+
+  .modal-card .modal-categories .cat.sale {
+    background: linear-gradient(120deg, #ef4444 0%, #b91c1c 55%, #ef4444 100%);
+    color: #ffffff;
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow:
+      0 12px 26px rgba(239, 68, 68, 0.35),
+      0 0 0 2px rgba(239, 68, 68, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .modal-card .modal-categories .cat.sale::before {
+    background: #ffffff;
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.35);
+  }
+
+  .modal-card .modal-categories .cat.sale::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.32) 40%,
+      rgba(255, 255, 255, 0.08) 55%,
+      transparent 70%
+    );
+    transform: translateX(-120%);
+    animation: saleShimmer 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .modal-card .modal-categories .cat-label {
+    color: #065f46;
+    font-weight: 800;
+    letter-spacing: 0.25px;
+  }
+
+  .modal-card .modal-categories .cat-sale-pill {
+    margin-left: auto;
+    height: auto;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    color: #ffffff;
+    font-weight: 900;
+    text-transform: uppercase;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    letter-spacing: 0.25px;
+  }
+
+  .modal-card .modal-categories .cat.active .cat-label {
+    color: #fefce8;
+  }
+
+  .modal-card .modal-categories .cat.sale .cat-label {
+    color: #ffffff;
   }
   
  /* header modal */
@@ -5108,6 +6246,12 @@ font-size: 11px;
     justify-content: center;
 
     border-bottom: 2px solid #22c55e;
+  }
+
+  /* header ch?n danh m?c: ch? xanh ?m, d?m */
+  .modal-card .export-title.category-modal-title {
+    color: #065f46;
+    font-weight: 900;
   }
 
   /* nút đóng (X) */
@@ -5272,6 +6416,60 @@ font-size: 11px;
   font-weight: bold;
   color: white;
   font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  padding: 0 56px;
+  width: 100%;
+}
+.detail-add-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+
+  background: linear-gradient(180deg, #fff9cc 0%, #facc15 100%);
+  color: #065f46;
+  box-shadow: 0 4px 10px rgba(250, 204, 21, 0.45);
+  cursor: pointer;
+  overflow: hidden;
+}
+.detail-add-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.7) 45%,
+    rgba(255, 255, 255, 0.2) 60%,
+    transparent 75%
+  );
+  transform: translateX(-140%);
+  animation: detailAddShimmer 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.detail-add-btn:active {
+  transform: translateY(-50%) scale(0.96);
+}
+.detail-add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.detail-add-btn:disabled::after {
+  animation: none;
+}
+
+@keyframes detailAddShimmer {
+  0% { transform: translateX(-140%); }
+  55% { transform: translateX(140%); }
+  100% { transform: translateX(160%); }
 }
 /* active */
 .back-btn:active {
@@ -5309,9 +6507,20 @@ font-size: 11px;
 .detail-image-wrap {
   position: relative;
   padding-bottom: 12px;
+  display: grid;
+  grid-template-rows: min(320px, 45vh) auto;
 }
 
-.detail-image-wrap::after {
+.detail-image-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: min(320px, 45vh);
+}
+
+.detail-image-main::after {
   content: "";
   position: absolute;
   left: 12%;
@@ -5340,6 +6549,7 @@ font-size: 11px;
   right: 0;
 
   height: 70px;
+  padding-bottom: env(safe-area-inset-bottom);
   background: #ffffff;
 
   display: grid;
@@ -5496,28 +6706,29 @@ font-size: 11px;
   100% { transform: scale(1); }
 }
   /* ===== MODAL CHI TIẾT MOBILE – NHỎ LẠI ===== */
-.modal-card.modal-wide {
-  width: 620px;
-  max-width: 92%;
-  border-radius: 16px;
-}
+@media (max-width: 768px) {
+  .modal-card.modal-wide {
+    width: 620px;
+    max-width: 92%;
+    border-radius: 16px;
+  }
 
+  .modal-left {
+    background: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    overflow: hidden;
+  }
 
-.modal-left {
-  background: #f9fafb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.modal-left .modal-img {
-  width: 100%;
-  height: auto;
-  max-height: 340px;
-  min-height: unset;
-  object-fit: contain;
+  .modal-left .modal-img {
+    width: 100%;
+    height: auto;
+    max-height: 340px;
+    min-height: unset;
+    object-fit: contain;
+  }
 }
  .detail-sidebar {
     position: fixed;
@@ -5536,6 +6747,8 @@ font-size: 11px;
     align-items: center;
     gap: 12px;
     padding: 0 14px;
+    position: relative;
+    justify-content: center;
   }
 
   .detail-body {
@@ -5548,6 +6761,56 @@ font-size: 11px;
     width: 100%;
     max-height: 320px;
     object-fit: contain;
+  }
+  .detail-thumbs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .detail-thumbs::-webkit-scrollbar {
+    display: none;
+  }
+  .detail-thumb {
+    border: none;
+    background: transparent;
+    padding: 0;
+    flex: 0 0 auto;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border: 2px solid transparent;
+  }
+  .detail-thumb img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    display: block;
+  }
+  .detail-thumb.active {
+    border-color: #22c55e;
+  }
+  .detail-img-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(22, 163, 74, 0.9);
+    color: #ffffff;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  }
+  .detail-img-nav.prev { left: 8px; }
+  .detail-img-nav.next { right: 8px; }
+  .detail-img-nav:active {
+    transform: translateY(-50%) scale(0.96);
   }
    .detail-slide-enter-from {
     transform: translateX(-100%);
@@ -5758,6 +7021,20 @@ font-size: 11px;
 
   .sidebar-left { width: 260px; }
   .sidebar-right { width: 360px; }
+}
+.layout {
+  min-height: 100vh;
+}
+@supports (height: 100dvh) {
+  .layout {
+    min-height: 100dvh;
+  }
+  .main {
+    min-height: 100dvh;
+  }
+  .sidebar-right {
+    height: 100dvh;
+  }
 }
 
 .lang-modal {
@@ -6057,6 +7334,8 @@ filter: saturate(1.15);
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  position: relative;
+  overflow: visible;
 
   margin-top: 8px;
   padding: 4px 12px;
@@ -6084,41 +7363,144 @@ filter: saturate(1.15);
 }
 
 .dot-online {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
+  display: inline-block;
+  position: relative;
 
   background: #22c55e;
 
   box-shadow:
-    0 0 0 2px rgba(34,197,94,0.25);
+    0 0 0 5px rgba(34,197,94,0.38),
+    0 0 14px rgba(34,197,94,0.72),
+    0 0 28px rgba(34,197,94,0.6);
+  filter: drop-shadow(0 0 6px rgba(34,197,94,0.35));
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(34,197,94,0.85);
+    box-shadow: 0 0 0 0 rgba(34,197,94,0.95), 0 0 14px rgba(34,197,94,0.65);
   }
 
   30% {
-    box-shadow: 0 0 0 4px rgba(34,197,94,0.55);
+    box-shadow: 0 0 0 8px rgba(34,197,94,0.7), 0 0 18px rgba(34,197,94,0.5);
   }
 
-  55% {
-    box-shadow: 0 0 0 6px rgba(34,197,94,0.25);
+  60% {
+    box-shadow: 0 0 0 12px rgba(34,197,94,0.34), 0 0 20px rgba(34,197,94,0.42);
   }
 
-  75% {
-    box-shadow: 0 0 0 4px rgba(34,197,94,0.15);
+  80% {
+    box-shadow: 0 0 0 9px rgba(34,197,94,0.22), 0 0 14px rgba(34,197,94,0.32);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(34,197,94,0);
+    box-shadow: 0 0 0 0 rgba(34,197,94,0), 0 0 0 rgba(34,197,94,0);
   }
 }
 
+@keyframes pulseRing {
+  0% { opacity: 0.55; transform: scale(0.55); }
+  40% { opacity: 0.4; transform: scale(1.35); }
+  70% { opacity: 0.25; transform: scale(1.9); }
+  100% { opacity: 0; transform: scale(2.35); }
+}
+
+@keyframes pulseGlow {
+  0% { opacity: 1; transform: scale(0.85); }
+  35% { opacity: 0.7; transform: scale(1.1); }
+  65% { opacity: 0.45; transform: scale(1.35); }
+  100% { opacity: 0.25; transform: scale(1.55); }
+}
+
+@keyframes pulseSoft {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.65), 0 0 8px rgba(34,197,94,0.35); }
+  45% { box-shadow: 0 0 0 5px rgba(34,197,94,0.4), 0 0 10px rgba(34,197,94,0.3); }
+  80% { box-shadow: 0 0 0 2px rgba(34,197,94,0.26), 0 0 6px rgba(34,197,94,0.25); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0), 0 0 0 rgba(34,197,94,0); }
+}
+
+@keyframes pulseRingSoft {
+  0% { opacity: 0.4; transform: scale(0.65); }
+  45% { opacity: 0.3; transform: scale(1.25); }
+  80% { opacity: 0.18; transform: scale(1.65); }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+
+@keyframes pulseGlowSoft {
+  0% { opacity: 0.55; transform: scale(0.9); }
+  45% { opacity: 0.4; transform: scale(1.1); }
+  80% { opacity: 0.25; transform: scale(1.25); }
+  100% { opacity: 0.12; transform: scale(1.35); }
+}
 
 .dot-online {
-  animation: pulse 1.8s infinite;
+  animation: pulse 0.9s infinite;
+  cursor: pointer;
+}
+
+.dot-online:active, .badge-online:active .dot-online {
+  animation: pulse 0.7s infinite;
+  transform: scale(1.12);
+}
+
+.dot-online:active::after, .badge-online:active .dot-online::after {
+  animation: pulseRing 0.7s ease-out infinite;
+  opacity: 0.75;
+}
+
+.dot-online::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(rgba(34,197,94,0.45), rgba(34,197,94,0));
+  opacity: 0.9;
+  filter: blur(1px);
+  animation: pulseGlow 1.8s ease-in-out infinite;
+}
+
+.dot-online::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 3px solid rgba(34,197,94,0.55);
+  opacity: 0;
+  animation: pulseRing 0.9s ease-out infinite;
+}
+
+/* Soften dot when trong badge th?i gian m? c?a */
+.badge-online .dot-online {
+  animation: pulseSoft 1.6s ease-in-out infinite;
+  box-shadow:
+    0 0 0 3px rgba(34,197,94,0.24),
+    0 0 10px rgba(34,197,94,0.38),
+    0 0 18px rgba(34,197,94,0.28);
+  filter: none;
+}
+
+.badge-online .dot-online::before {
+  inset: -3px;
+  opacity: 0.5;
+  animation: pulseGlowSoft 1.6s ease-in-out infinite;
+}
+
+.badge-online .dot-online::after {
+  inset: -6px;
+  border: 2px solid rgba(34,197,94,0.35);
+  animation: pulseRingSoft 1.6s ease-out infinite;
+}
+
+.badge-online:active .dot-online {
+  animation: pulseSoft 1.1s ease-in-out infinite;
+  transform: scale(1.05);
+}
+
+.badge-online:active .dot-online::after {
+  animation: pulseRingSoft 1.1s ease-out infinite;
+  opacity: 0.5;
 }
 .logo-time {
   transform: scale(0.95);
@@ -6290,10 +7672,10 @@ filter: saturate(1.15);
 
 .ck-modal{
   width: min(980px, 94vw);
-  max-height: 85vh;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
 
   /* set chiều cao 1 card để tính đúng 2 hàng */
   --ck-row-h: 300px;   /* chỉnh 280–320 tuỳ card của mày */
@@ -6375,6 +7757,7 @@ filter: saturate(1.15);
 @media (max-width: 560px){
   .ck-list{
     grid-template-columns: 1fr;
+    max-height: 80vh;
   }
 }
 
@@ -6502,7 +7885,7 @@ box-shadow: 0 4px 10px rgba(239, 243, 16, 0.45);
   flex-direction: column;
   gap: 8px;
 
-  overflow: hidden;
+  overflow: visible; /* tránh cắt card trên mobile */
 }
 
 
@@ -6769,11 +8152,19 @@ box-shadow: 0 4px 10px rgba(239, 243, 16, 0.45);
   color: #94a3b8;
   text-decoration: line-through;
 }
-/* ===== SALE CATEGORY – SIMPLE ===== */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+/* ===== SALE CATEGORY �?" SIMPLE ===== */
 .cat.sale {
-  background: #dc2626;
+  background: linear-gradient(135deg, #ef4444, #b91c1c, #ef4444);
+  background-size: 200% 200%;
   color: #ffffff;
-  font-weight: 700;
+  font-weight: 800;
 
   display: flex;
   align-items: center;
@@ -6783,22 +8174,94 @@ box-shadow: 0 4px 10px rgba(239, 243, 16, 0.45);
   padding: 6px 14px;
   line-height: 1;
 
-  /* ✨ ánh đèn chữ */
+  /* �o" A�nh �`A"n ch��_ */
   text-shadow:
     0 0 2px rgba(255,255,255,0.6),
     0 0 6px rgba(255,255,255,0.35);
+
+  box-shadow:
+    0 10px 24px rgba(239, 68, 68, 0.32),
+    0 0 0 2px rgba(239, 68, 68, 0.18);
+
+  animation: saleGlow 2.2s ease-in-out infinite;
 }
 
 
 
 .cat.sale:hover {
-  background: #b91c1c;
+  background-position: 100% 50%;
+  box-shadow:
+    0 12px 28px rgba(239, 68, 68, 0.4),
+    0 0 0 4px rgba(239, 68, 68, 0.22);
+
 }
 
 .cat.sale.active {
   outline: 2px solid #dc2626;
   outline-offset: 2px;
+  box-shadow:
+    0 12px 28px rgba(239, 68, 68, 0.4),
+    0 0 0 4px rgba(239, 68, 68, 0.22);
 }
+
+@keyframes saleGlow {
+  0% {
+    background-position: 0% 50%;
+    transform: translateY(0);
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: translateY(-1px);
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: translateY(0);
+  }
+}
+
+
+/* SALE tag desktop: red background, white text with animated shine */
+@media (min-width: 769px) {
+  .sidebar-left .categories .cat.sale {
+    background: linear-gradient(120deg, #ef4444 0%, #b91c1c 55%, #ef4444 100%);
+    color: #ffffff;
+    border-color: rgba(239, 68, 68, 0.55);
+    box-shadow:
+      0 12px 26px rgba(239, 68, 68, 0.35),
+      0 0 0 2px rgba(239, 68, 68, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-left .categories .cat.sale::before {
+    background: #ffffff;
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.35);
+  }
+
+  .sidebar-left .categories .cat.sale::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.32) 40%,
+      rgba(255, 255, 255, 0.08) 55%,
+      transparent 70%
+    );
+    transform: translateX(-120%);
+    animation: saleShimmer 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes saleShimmer {
+  0% { transform: translateX(-120%); }
+  55% { transform: translateX(120%); }
+  100% { transform: translateX(140%); }
+}
+
 /* ===== SALE BADGE (MOBILE CATEGORY) ===== */
 .category-btn-wrap {
   position: relative;
@@ -6824,5 +8287,149 @@ box-shadow: 0 4px 10px rgba(239, 243, 16, 0.45);
   box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 
+/* ===== COPY GUIDE MODAL ===== */
+.copy-guide-modal {
+  width: 440px;
+  max-width: 92%;
+  padding: 24px;
+  text-align: center;
+}
 
+.guide-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.platform-icon {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.guide-title {
+  font-size: 19px;
+  font-weight: 900;
+  color: #065f46;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* STEPS */
+.guide-steps {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: #ecfdf5;
+  border-radius: 12px;
+  border-left: 4px solid #22c55e;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #065f46;
+}
+
+.step-text strong {
+  color: #047857;
+  font-weight: 800;
+}
+
+/* PREVIEW ĐƠN HÀNG */
+.order-preview {
+  width: 100%;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.preview-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.preview-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+  max-height: 60px;
+  overflow: hidden;
+  text-align: left;
+}
+
+/* NÚT MỞ APP */
+.open-app-btn {
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0068FF, #0052CC);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(0, 104, 255, 0.45);
+  transition: all 0.2s ease;
+}
+
+.open-app-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 104, 255, 0.55);
+}
+
+.open-app-btn:active {
+  transform: scale(0.96);
+}
+
+/* NÚT COPY LẠI */
+.copy-again-btn {
+  width: 100%;
+  padding: 10px 0;
+  border: 2px solid #22c55e;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #16a34a;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-again-btn:hover {
+  background: #ecfdf5;
+}
 </style>

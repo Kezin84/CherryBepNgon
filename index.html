@@ -1,14 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
+    <!-- Thay đổi viewport này -->
     <meta
-  name="viewport"
-  content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-/>
-
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
 
     <!-- Remix Icon -->
     <link
@@ -17,6 +16,24 @@
     />
 
     <title>Menu Online</title>
+    
+    <!-- Thêm CSS này vào head -->
+    <style>
+      /* Ngăn Safari/Chrome zoom vào input */
+      input, 
+      textarea, 
+      select {
+        font-size: 16px !important;
+      }
+      
+      /* Nếu muốn font nhỏ hơn cho design, dùng transform */
+      input.small-text,
+      textarea.small-text {
+        font-size: 16px !important;
+        transform: scale(0.875); /* Tương đương 14px */
+        transform-origin: left top;
+      }
+    </style>
   </head>
 
   <body>
@@ -24,5 +41,3 @@
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
-
-```

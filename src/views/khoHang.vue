@@ -1,9 +1,9 @@
 <template>
   
-  <div class="page" @scroll.passive="handleScroll">
+  <div class="page" ref="pageRef">
 <h1 style="color: rgb(134, 239, 172); text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);font-weight: bold;"><i class="ri-archive-fill"></i> KHO HÀNG</h1>
    <!-- ===== MOBILE STICKY SEARCH ===== -->
-<div v-if="isMobile" class="mobile-sticky-search">
+<div v-if="isMobile" class="mobile-sticky-search" ref="mobileSearchRef">
   <div class="mobile-sticky-search-inner">
     <div class="search-container">
       <div class="search-icon"><i class="ri-search-line" ></i></div>
@@ -147,7 +147,13 @@
     </section>
 
     <!-- ===== DESKTOP TABLE ===== -->
-    <section class="content-section desktop-view">
+    <section
+      class="content-section desktop-view"
+      ref="desktopTableSection"
+      @mouseenter="tableHovering = true"
+      @mouseleave="tableHovering = false"
+    >
+       <div ref="desktopTableAnchor"></div>
        <div v-if="tableLoading" class="table-loading-container">
     <div class="table-loading">
       <div class="table-loading-spinner"></div>
@@ -169,8 +175,10 @@
               </th>
               <th style="width: 60px" class="text-center">STT</th>
               <th style="width: 80px" class="text-center">Ảnh</th>
+              <th style="width: 220px" class="text-center">Ảnh phụ</th>
               <th style="width: 120px" class="text-center">Mã hàng</th>
               <th style="width: 200px" class="text-center">Tên sản phẩm</th>
+              <th style="width: 160px" class="text-center">Mô tả</th>
               <th style="width: 120px" class="text-center">Danh mục</th>
               <th style="width: 80px" class="text-center">Size</th>
               <th style="width: 70px" class="text-center">ĐVT</th>
@@ -178,9 +186,8 @@
               <th style="width: 100px" class="text-center">Giá bán</th>
               <th style="width: 100px" class="text-center">Giá giảm</th>
               <th style="width: 80px" class="text-center">Tiền tệ</th>
-              <th style="width: 70px" class="text-center">Lang</th>
+              <th style="width: 70px" class="text-center">Ngôn Ngữ</th>
               <th style="width: 120px" class="text-center">Trạng thái</th>
-              <th style="width: 150px" class="text-center">Mô tả</th>
               <th style="width: 120px" class="text-center">Thao tác</th>
             </tr>
           </thead>
@@ -211,26 +218,47 @@
                   <div v-else class="product-thumbnail-empty"><i class="ri-file-image-fill"></i></div>
                 </div>
               </td>
+              <td class="text-center" @click.stop>
+                <div class="supplementary-images" aria-label="Ảnh phụ">
+                  <div
+                    v-for="(key, slotIndex) in supplementaryImageKeys"
+                    :key="key"
+                    class="supplementary-image-slot"
+                    :title="item[key] ? `Ảnh phụ ${slotIndex + 1}` : 'Chưa có ảnh phụ'"
+                  >
+                    <img
+                      v-if="item[key]"
+                      :src="item[key]"
+                      :alt="`${item.Ten_hang} ảnh phụ ${slotIndex + 1}`"
+                      class="supplementary-thumb"
+                    />
+                    <div v-else class="supplementary-thumb-empty" aria-hidden="true">
+                      <i class="ri-image-line"></i>
+                    </div>
+                  </div>
+                </div>
+              </td>
               <td class="text-center text-mono">{{ item.Ma_hang }}</td>
-              <td class="text-center product-name-cell">{{ item.Ten_hang }}</td>
-              <td class="text-center">{{ item.Danh_muc }}</td>
-              <td class="text-center">{{ item.Size }}</td>
-              <td class="text-center">{{ item.Dvt }}</td>
-              <td class="text-center text-number">{{ formatNumber(item.Gia_goc) }}</td>
-              <td class="text-center text-number text-bold">{{ formatNumber(item.Gia_ban) }}</td>
-              <td class="text-center text-number">
+              <td class="text-center product-name-cell" @click.stop="openEdit(item, { focusField: 'Ten_hang' })">{{ item.Ten_hang }}</td>
+              <td class="text-center text-muted text-truncate" @click.stop="openEdit(item, { focusField: 'Mo_ta' })">{{ item.Mo_ta }}</td>
+              <td class="text-center" @click.stop="openEdit(item, { focusField: 'Danh_muc' })">{{ item.Danh_muc }}</td>
+              <td class="text-center" @click.stop="openEdit(item, { focusField: 'Size' })">{{ item.Size }}</td>
+              <td class="text-center" @click.stop="openEdit(item, { focusField: 'Dvt' })">{{ item.Dvt }}</td>
+              <td class="text-center text-number" @click.stop="openEdit(item, { focusField: 'Gia_goc' })">{{ formatNumber(item.Gia_goc) }}</td>
+              <td class="text-center text-number price-main" @click.stop="openEdit(item, { focusField: 'Gia_ban' })">{{ formatNumber(item.Gia_ban) }}</td>
+              <td class="text-center text-number" @click.stop="openEdit(item, { focusField: 'Gia_Giam' })">
                 <span v-if="item.Gia_Giam && item.Gia_Giam > 0" class="price-sale">
                   {{ formatNumber(item.Gia_Giam) }}
                 </span>
                 <span v-else class="text-muted">—</span>
               </td>
-              <td class="text-center">
+              <td class="text-center" @click.stop="openEdit(item, { focusField: 'Don_vi_tien_te' })">
                 <span class="badge badge-currency">{{ item.Don_vi_tien_te || 'VND' }}</span>
               </td>
-              <td class="text-center">
+              <td class="text-center" @click.stop="openEdit(item, { focusField: 'Lang' })">
                 <span class="badge badge-lang">{{ item.Lang || 'vi' }}</span>
               </td>
-              <td class="text-center">
+              <td class="text-center" @click.stop="openEdit(item, { focusField: 'Trang_thai' })">
                 <span 
                   class="badge" 
                   :class="item.Trang_thai === 'Còn hàng' ? 'badge-success' : 'badge-danger'"
@@ -238,7 +266,6 @@
                   {{ item.Trang_thai }}
                 </span>
               </td>
-              <td class="text-center text-muted text-truncate">{{ item.Mo_ta }}</td>
               <td @click.stop class="text-center">
                 <button class="btn-action-discount" @click="openDiscount(item)">
                    GIẢM GIÁ
@@ -255,7 +282,7 @@
           Hiển thị <strong>{{ startIndex }}-{{ endIndex }}</strong> / <strong>{{ ordered.length }}</strong> sản phẩm
 
         </div>
-        <div class="pagination-controls">
+        <div class="pagination-controls" ref="paginationDesktopRef">
           <button 
             class="pagination-btn pagination-arrow" 
             :disabled="currentPage === 1"
@@ -306,7 +333,8 @@
     </section>
 
     <!-- ===== MOBILE CARDS ===== -->
-    <section class="content-section mobile-view">
+    <section class="content-section mobile-view" ref="mobileListSection">
+       <div ref="mobileTableAnchor"></div>
        <!-- TABLE LOADING -->
   <div v-if="tableLoading" class="table-loading-container">
     <div class="table-loading">
@@ -322,7 +350,7 @@
           class="product-card"
           @click="openEdit(item)"
         >
-          <div class="card-header">
+          <div class="card-row">
             <div class="card-image-wrapper">
               <img
                 v-if="item.Main_img"
@@ -332,51 +360,64 @@
               />
               <div v-else class="card-image-empty"><i class="ri-file-image-fill"></i></div>
             </div>
-            <div class="card-info">
-              <h3 class="card-title">{{ item.Ten_hang }}</h3>
-              <div class="card-meta">
-                <span class="badge" :class="item.Trang_thai === 'Còn hàng' ? 'badge-success' : 'badge-danger'">
-                  {{ item.Trang_thai }}
-                </span>
-                <span class="card-code">{{ item.Ma_hang }}</span>
+            <div class="card-content">
+              <div class="card-header-inline">
+                <div class="card-info">
+                  <h3 class="card-title">{{ item.Ten_hang }}</h3>
+                  <div class="card-meta">
+                    <span class="badge" :class="item.Trang_thai === 'Còn hàng' ? 'badge-success' : 'badge-danger'">
+                      {{ item.Trang_thai }}
+                    </span>
+                    <span class="card-code">{{ item.Ma_hang }}</span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  v-model="selected"
+                  :value="item.Ma_hang"
+                  class="checkbox"
+                  @click.stop
+                />
               </div>
-            </div>
-            <input
-              type="checkbox"
-              v-model="selected"
-              :value="item.Ma_hang"
-              class="checkbox"
-              @click.stop
-            />
-          </div>
 
-          <div class="card-pricing">
-            <div class="price-row">
-              <span class="price-label">Giá bán</span>
-              <span class="price-value primary">{{ formatNumber(item.Gia_ban) }}</span>
-            </div>
-            <div v-if="item.Gia_Giam && item.Gia_Giam > 0" class="price-row">
-              <span class="price-label">Giá giảm</span>
-              <span class="price-value sale">{{ formatNumber(item.Gia_Giam) }}</span>
-            </div>
-            <div class="price-badges">
-              <span class="badge badge-currency">{{ item.Don_vi_tien_te || 'VND' }}</span>
-              <span class="badge badge-lang">{{ item.Lang || 'vi' }}</span>
+              <div class="card-price-block">
+                <div class="price-row">
+                  <span class="price-label">Giá bán</span>
+                  <span class="price-value primary">
+                    {{ formatNumber(item.Gia_ban) }} {{ item.Don_vi_tien_te || 'VND' }}
+                  </span>
+                </div>
+                <div v-if="item.Gia_Giam && item.Gia_Giam > 0" class="price-row">
+                  <span class="price-label">Giá giảm</span>
+                  <span class="price-value sale">
+                    {{ formatNumber(item.Gia_Giam) }} {{ item.Don_vi_tien_te || 'VND' }}
+                  </span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Ngôn ngữ</span>
+                  <span class="price-value lang">{{ (item.Lang || 'vi').toUpperCase() }}</span>
+                </div>
+              
+              </div>
             </div>
           </div>
 
           <div class="card-actions">
-            <button class="card-action-btn btn-edit" @click.stop="openEdit(item)">
+            <button class="card-action-btn btn-edit" @click.stop="openEdit(item, { focusField: 'Ten_hang' })">
               <span class="btn-icon"><i class="ri-edit-box-line"></i></span>
               <span class="btn-text">Sửa</span>
             </button>
-            <button class="card-action-btn btn-delete" @click.stop="confirmDelete(item)">
-              <span class="btn-icon"><i class="ri-delete-bin-fill"></i></span>
-              <span class="btn-text">Xóa</span>
+            <button class="card-action-btn btn-status" @click.stop="openEdit(item, { focusField: 'Trang_thai' })">
+              <span class="btn-icon"><i class="ri-refresh-line"></i></span>
+              <span class="btn-text">Trạng thái</span>
             </button>
             <button class="card-action-btn btn-discount" @click.stop="openDiscount(item)">
               <span class="btn-icon"><i class="ri-price-tag-3-line"></i></span>
               <span class="btn-text">Giảm giá</span>
+            </button>
+            <button class="card-action-btn btn-delete" @click.stop="confirmDelete(item)">
+              <span class="btn-icon"><i class="ri-delete-bin-fill"></i></span>
+              <span class="btn-text">Xóa</span>
             </button>
           </div>
         </div>
@@ -387,7 +428,7 @@
         <div class="pagination-info">
           Trang <strong>{{ currentPage }}</strong> / <strong>{{ totalPages }}</strong>
         </div>
-        <div class="pagination-controls">
+        <div class="pagination-controls" ref="paginationMobileRef">
           <button 
             class="pagination-btn pagination-arrow" 
             :disabled="currentPage === 1"
@@ -470,11 +511,17 @@
               <div class="form-section">
                 <div class="form-group">
                   <label class="form-label">Ngôn ngữ</label>
-                  <select v-model="edit.Lang" class="form-control" @change="markAsEdited">
-                    <option value="vi">🇻🇳 Tiếng Việt</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="zh-CN">🇨🇳 中文</option>
-                    <option value="fil">🇵🇭 Filipino</option>
+                  <select
+                    data-field="Lang"
+                    v-model="edit.Lang"
+                    class="form-control"
+                    @change="markAsEdited"
+                  >
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="en">Tiếng Anh</option>
+                    <option value="zh-CN">Trung Quốc</option>
+                    <option value="fil">Phillipines</option>
+                    <option value="ko">Hàn Quốc</option>
                   </select>
                 </div>
               </div>
@@ -484,27 +531,79 @@
                 <label class="form-label">Hình ảnh sản phẩm</label>
                 <div class="image-upload-area">
                   <div class="image-preview-container">
-                    <img v-if="edit.Main_img" :src="edit.Main_img" class="image-preview" />
+                    <img
+                      v-if="edit.Main_img"
+                      :src="edit.Main_img"
+                      class="image-preview image-preview-clickable"
+                      @click.stop="openImagePreview(edit.Main_img)"
+                    />
                     <div v-else class="image-preview-empty">
                       <span class="empty-icon"><i class="ri-file-image-line"></i></span>
                       <span class="empty-text">Chưa có ảnh</span>
                     </div>
                   </div>
-                  <input
-                    type="file"
-                    ref="fileInput"
-                    @change="handleImageUpload"
-                    accept="image/*"
-                    style="display: none"
-                  />
+                    <input
+                      type="file"
+                      ref="fileInput"
+                      @change="handleImageUpload('Main_img', $event)"
+                      accept="image/*"
+                      style="display: none"
+                    />
                   <button 
                     class="btn-upload-image" 
                     @click="$refs.fileInput.click()" 
-                    :disabled="uploading"
+                    :disabled="mainImageUploading"
                   >
-                    <span v-if="uploading"> Đang tải...</span>
+                    <span v-if="mainImageUploading"> Đang tải...</span>
                     <span v-else><i class="ri-chat-upload-fill"></i>Upload ảnh</span>
                   </button>
+                </div>
+                <div class="form-group supplementary-images-group">
+                  <label class="form-label">Ảnh phụ</label>
+                  <div class="supplementary-images">
+                    <div
+                      v-for="(key, slotIndex) in supplementaryImageKeys"
+                      :key="key"
+                      class="supplementary-image-slot"
+                      :class="{ 'is-loading': modalSupplementaryUploading[slotIndex] }"
+                      :title="edit[key] ? `Ảnh phụ ${slotIndex + 1}` : 'Chưa có ảnh phụ'"
+                      role="button"
+                      tabindex="0"
+                      @click.stop="openSidebarSupplementaryUpload(slotIndex)"
+                      @keydown.enter.prevent="openSidebarSupplementaryUpload(slotIndex)"
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        class="supplementary-upload-input"
+                        style="display: none"
+                        :ref="el => setSidebarInput(el, slotIndex)"
+                        @change="handleImageUpload(key, $event)"
+                      />
+                      <button
+                        v-if="edit[key]"
+                        type="button"
+                        class="supplementary-delete-btn"
+                        aria-label="Xóa ảnh phụ"
+                        @click.stop="removeSupplementaryImage(key)"
+                      >
+                        <i class="ri-close-fill"></i>
+                      </button>
+                      <div v-if="modalSupplementaryUploading[slotIndex]" class="supplementary-loading" aria-hidden="true">
+                        <span class="supplementary-spinner"></span>
+                      </div>
+                      <img
+                        v-if="edit[key]"
+                        :src="edit[key]"
+                        :alt="`${edit.Ten_hang || 'Sản phẩm'} ảnh phụ ${slotIndex + 1}`"
+                        class="supplementary-thumb image-preview-clickable"
+                        @click.stop="openImagePreview(edit[key])"
+                      />
+                      <div v-else class="supplementary-thumb-empty" aria-hidden="true">
+                        <i class="ri-image-line"></i>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -513,11 +612,16 @@
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">Mã hàng</label>
-                    <input v-model="edit.Ma_hang" disabled class="form-control" />
+                    <input data-field="Ma_hang" v-model="edit.Ma_hang" disabled class="form-control" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Tên sản phẩm</label>
-                    <input v-model="edit.Ten_hang" class="form-control" @input="markAsEdited" />
+                    <input
+                      data-field="Ten_hang"
+                      v-model="edit.Ten_hang"
+                      class="form-control"
+                      @input="markAsEdited"
+                    />
                   </div>
                 </div>
               </div>
@@ -525,24 +629,46 @@
               <!-- Trang thai, Danh muc, Size, DVT -->
               <div class="form-section">
                 <div class="form-row form-row-4">
-                  <div class="form-group">
-                    <label class="form-label">Trạng thái</label>
-                    <select v-model="edit.Trang_thai" class="form-control" @change="markAsEdited">
-                      <option>Còn hàng</option>
-                      <option>Hết hàng</option>
-                    </select>
+                <div class="form-group">
+                  <label class="form-label">Trạng thái</label>
+                  <select
+                    data-field="Trang_thai"
+                    ref="statusSelect"
+                    v-model="edit.Trang_thai"
+                    class="form-control"
+                    @change="markAsEdited"
+                  >
+                    <option>Còn hàng</option>
+                    <option>Hết hàng</option>
+                  </select>
+                  <div v-if="isMobile && statusOptionsVisible" class="mobile-status-options">
+                    <button
+                      class="status-option-btn"
+                      :class="{ active: edit.Trang_thai === 'Còn hàng' }"
+                      @click="selectMobileStatus('Còn hàng')"
+                    >
+                      Còn hàng
+                    </button>
+                    <button
+                      class="status-option-btn"
+                      :class="{ active: edit.Trang_thai === 'Hết hàng' }"
+                      @click="selectMobileStatus('Hết hàng')"
+                    >
+                      Hết hàng
+                    </button>
                   </div>
+                </div>
                   <div class="form-group">
                     <label class="form-label">Danh mục</label>
-                    <input v-model="edit.Danh_muc" class="form-control" @input="markAsEdited" />
+                    <input data-field="Danh_muc" v-model="edit.Danh_muc" class="form-control" @input="markAsEdited" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Size</label>
-                    <input v-model="edit.Size" class="form-control" @input="markAsEdited" />
+                    <input data-field="Size" v-model="edit.Size" class="form-control" @input="markAsEdited" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">ĐVT</label>
-                    <input v-model="edit.Dvt" class="form-control" @input="markAsEdited" />
+                    <input data-field="Dvt" v-model="edit.Dvt" class="form-control" @input="markAsEdited" />
                   </div>
                 </div>
               </div>
@@ -552,11 +678,18 @@
                 <div class="form-row form-row-4">
                   <div class="form-group">
                     <label class="form-label">Tiền tệ</label>
-                    <input v-model="edit.Don_vi_tien_te" placeholder="VND" class="form-control" @input="markAsEdited" />
+                    <input
+                      data-field="Don_vi_tien_te"
+                      v-model="edit.Don_vi_tien_te"
+                      placeholder="VND"
+                      class="form-control"
+                      @input="markAsEdited"
+                    />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Giá gốc</label>
                     <input
+  data-field="Gia_goc"
   type="text"
   inputmode="numeric"
   autocomplete="off"
@@ -569,6 +702,7 @@
                     <label class="form-label">Giá bán</label>
                     <!-- Giá bán -->
 <input
+  data-field="Gia_ban"
   type="text"
   inputmode="numeric"
   autocomplete="off"
@@ -580,6 +714,7 @@
                   <div class="form-group">
                     <label class="form-label">Giá giảm</label>
                 <input
+  data-field="Gia_Giam"
   type="text"
   inputmode="numeric"
   autocomplete="off"
@@ -596,7 +731,13 @@
               <div class="form-section">
                 <div class="form-group">
                   <label class="form-label">Mô tả sản phẩm</label>
-                  <textarea v-model="edit.Mo_ta" class="form-control form-textarea" rows="3" @input="markAsEdited"></textarea>
+                  <textarea
+                    data-field="Mo_ta"
+                    v-model="edit.Mo_ta"
+                    class="form-control form-textarea"
+                    rows="3"
+                    @input="markAsEdited"
+                  ></textarea>
                 </div>
               </div>
             </div>
@@ -637,185 +778,273 @@
           </div>
 
           <div class="modal-body">
-            <!-- Lang -->
-            <div class="form-section">
-              <div class="form-group">
-                <label class="form-label">Ngôn ngữ</label>
-                <select v-model="edit.Lang" class="form-control" @change="markAsEdited">
-                  <option value="vi">🇻🇳 Tiếng Việt</option>
-                  <option value="en">🇬🇧 English</option>
-                  <option value="zh-CN">🇨🇳 中文</option>
-                  <option value="fil">🇵🇭 Filipino</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Image | Upload | Ma hang | Ten hang -->
-            <div class="form-section">
-              <div class="form-row form-row-image">
-                <div class="form-group">
-                  <label class="form-label">Hình ảnh</label>
-                  <div class="image-upload-area">
-                    <div class="image-preview-container">
-                      <img v-if="edit.Main_img" :src="edit.Main_img" class="image-preview" />
-                      <div v-else class="image-preview-empty">
-                        <span class="empty-icon"><i class="ri-file-image-line"></i></span>
+            <div class="modal-body-grid">
+              <div class="modal-image-column">
+                <div class="modal-section-card modal-section-card--wide">
+                  <div class="modal-section-title">ẢNH CHÍNH </div>
+                  <div class="form-group main-image-group">
+                    <div class="image-upload-area">
+                      <div class="image-preview-container">
+                        <img
+                          v-if="edit.Main_img"
+                          :src="edit.Main_img"
+                          class="image-preview image-preview-clickable"
+                          @click.stop="openImagePreview(edit.Main_img)"
+                        />
+                        <div v-else class="image-preview-empty">
+                          <span class="empty-icon"><i class="ri-file-image-line"></i></span>
+                        </div>
                       </div>
+                      <input
+                        type="file"
+                        ref="fileInputModal"
+                        @change="handleImageUpload('Main_img', $event)"
+                        accept="image/*"
+                        style="display: none"
+                      />
+                      <button 
+                        class="btn-upload-image" 
+                        @click="$refs.fileInputModal.click()" 
+                        :disabled="mainImageUploading"
+                      >
+                        {{ mainImageUploading ? 'Đang tải lên...' : 'Đổi ảnh' }}
+                      </button>
                     </div>
-                    <input
-                      type="file"
-                      ref="fileInputModal"
-                      @change="handleImageUpload"
-                      accept="image/*"
-                      style="display: none"
-                    />
-                    <button 
-                      class="btn-upload-image" 
-                      @click="$refs.fileInputModal.click()" 
-                      :disabled="uploading"
-                    >
-                      {{ uploading ? 'Đang tải lên...' : 'Đổi ảnh' }}
-                    </button>
                   </div>
                 </div>
-
-                <div class="form-group">
-                  <label class="form-label">Mã hàng</label>
-                  <input v-model="edit.Ma_hang" disabled class="form-control" />
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Tên sản phẩm</label>
-                  <input v-model="edit.Ten_hang" class="form-control" @input="markAsEdited" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Trang thai | Danh muc | Size | DVT -->
-            <div class="form-section">
-              <div class="form-row form-row-4">
-                <div class="form-group">
-                  <label class="form-label">Trạng thái</label>
-                  <select v-model="edit.Trang_thai" class="form-control" @change="markAsEdited">
-                    <option>Còn hàng</option>
-                    <option>Hết hàng</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Danh mục</label>
-                  <input v-model="edit.Danh_muc" class="form-control" @input="markAsEdited" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Size</label>
-                  <input v-model="edit.Size" class="form-control" @input="markAsEdited" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">ĐVT</label>
-                  <input v-model="edit.Dvt" class="form-control" @input="markAsEdited" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Tien te | Gia goc | Gia ban | Gia giam -->
-            <div class="form-section">
-              <div class="form-row form-row-4">
-                <div class="form-group">
-                  <label class="form-label">Tiền tệ</label>
-                  <input v-model="edit.Don_vi_tien_te" placeholder="VND" class="form-control" @input="markAsEdited" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Giá gốc</label>
-                  <input
-  type="text"
-  inputmode="numeric"
-  autocomplete="off"
-  class="form-control"
-  :value="fmtMoney(edit.Gia_goc)"
-  @input="onMoneyInput($event, 'Gia_goc')"
-/>
-
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Giá bán</label>
-                <input
-  type="text"
-  inputmode="numeric"
-  autocomplete="off"
-  class="form-control"
-  :value="fmtMoney(edit.Gia_ban)"
-  @input="onMoneyInput($event, 'Gia_ban')"
-/>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Giá giảm</label>
-              <!-- Giá giảm -->
-<input
-  ref="discountInputModal"
-  type="text"
-  inputmode="numeric"
-  autocomplete="off"
-  placeholder="0"
-  class="form-control"
-  :class="{ 'form-control-highlight': isDiscountMode }"
-  :value="fmtMoney(edit.Gia_Giam)"
-  @input="onMoneyInput($event, 'Gia_Giam')"
-/>
+                <div class="modal-section-card modal-section-card--tight">
+                  <div class="modal-section-title">Ảnh phụ</div>
+                  <div class="supplementary-images modal-supplementary-grid">
+                    <div
+                      v-for="(key, slotIndex) in supplementaryImageKeys"
+                      :key="key"
+                      class="supplementary-image-slot"
+                      :class="{ 'is-loading': modalSupplementaryUploading[slotIndex] }"
+                      :title="edit[key] ? 'Ảnh phụ ' + (slotIndex + 1) : 'Chưa có ảnh phụ'"
+                      role="button"
+                      tabindex="0"
+                      @click.stop="openModalSupplementaryUpload(slotIndex)"
+                      @keydown.enter.prevent="openModalSupplementaryUpload(slotIndex)"
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        class="supplementary-upload-input"
+                        style="display: none"
+                        :ref="el => setModalInput(el, slotIndex)"
+                        @change="handleImageUpload(key, $event)"
+                      />
+                      <button
+                        v-if="edit[key]"
+                        type="button"
+                        class="supplementary-delete-btn"
+                        aria-label="Xóa ảnh phụ"
+                        @click.stop="removeSupplementaryImage(key)"
+                      >
+                        <i class="ri-close-fill"></i>
+                      </button>
+                      <div v-if="modalSupplementaryUploading[slotIndex]" class="supplementary-loading" aria-hidden="true">
+                        <span class="supplementary-spinner"></span>
+                      </div>
+                      <img
+                        v-if="edit[key]"
+                        :src="edit[key]"
+                        :alt="(edit.Ten_hang || 'Sản phẩm') + ' ảnh phụ ' + (slotIndex + 1)"
+                        class="supplementary-thumb image-preview-clickable"
+                        @click.stop="openImagePreview(edit[key])"
+                      />
+                      <div v-else class="supplementary-thumb-empty" aria-hidden="true">
+                        <i class="ri-image-line"></i>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Mo ta -->
-            <div class="form-section">
-              <div class="form-group">
-                <label class="form-label">Mô tả sản phẩm</label>
-                <textarea v-model="edit.Mo_ta" class="form-control form-textarea" rows="2" @input="markAsEdited"></textarea>
+              <div class="modal-details-column">
+                <div class="modal-details-grid">
+                  <div class="modal-section-card">
+                    <div class="modal-section-title">Thông tin chung</div>
+                    <div class="modal-section-grid modal-section-grid-2">
+                      <div class="form-group">
+                        <label class="form-label">Ngôn ngữ</label>
+                        <select
+                          data-field="Lang"
+                          v-model="edit.Lang"
+                          class="form-control"
+                          @change="markAsEdited"
+                        >
+                          <option value="vi">Tiếng Việt</option>
+                          <option value="en">Tiếng Anh</option>
+                          <option value="zh-CN">Trung Quốc</option>
+                          <option value="fil">Philippines</option>
+                          <option value="ko">Hàn Quốc</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Trạng thái</label>
+                        <select
+                          data-field="Trang_thai"
+                          ref="statusSelectModal"
+                          v-model="edit.Trang_thai"
+                          class="form-control"
+                          @change="markAsEdited"
+                        >
+                          <option>Còn hàng</option>
+                          <option>Hết hàng</option>
+                        </select>
+                        <div v-if="isMobile && statusOptionsVisible" class="mobile-status-options">
+                          <button
+                            class="status-option-btn"
+                            :class="{ active: edit.Trang_thai === 'Còn hàng' }"
+                            @click="selectMobileStatus('Còn hàng')"
+                          >
+                            Còn hàng
+                          </button>
+                          <button
+                            class="status-option-btn"
+                            :class="{ active: edit.Trang_thai === 'Hết hàng' }"
+                            @click="selectMobileStatus('Hết hàng')"
+                          >
+                            Hết hàng
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="modal-section-grid modal-section-grid-2">
+                      <div class="form-group">
+                        <label class="form-label">Mã hàng</label>
+                        <input data-field="Ma_hang" v-model="edit.Ma_hang" disabled class="form-control" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Tên sản phẩm</label>
+                        <input
+                          data-field="Ten_hang"
+                          v-model="edit.Ten_hang"
+                          class="form-control"
+                          @input="markAsEdited"
+                        />
+                      </div>
+                    </div>
+                    <div class="modal-section-grid modal-section-grid-3">
+                      <div class="form-group">
+                        <label class="form-label">Danh mục</label>
+                        <input data-field="Danh_muc" v-model="edit.Danh_muc" class="form-control" @input="markAsEdited" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Size</label>
+                        <input data-field="Size" v-model="edit.Size" class="form-control" @input="markAsEdited" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">ĐVT</label>
+                        <input data-field="Dvt" v-model="edit.Dvt" class="form-control" @input="markAsEdited" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-section-card">
+                    <div class="modal-section-title">Giá & tiền tệ</div>
+                    <div class="modal-section-grid modal-section-grid-2">
+                      <div class="form-group">
+                        <label class="form-label">Tiền tệ</label>
+                        <input
+                          data-field="Don_vi_tien_te"
+                          v-model="edit.Don_vi_tien_te"
+                          placeholder="VND"
+                          class="form-control"
+                          @input="markAsEdited"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Giá gốc</label>
+                        <input
+                          data-field="Gia_goc"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          class="form-control"
+                          :value="fmtMoney(edit.Gia_goc)"
+                          @input="onMoneyInput($event, 'Gia_goc')"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Giá bán</label>
+                        <input
+                          data-field="Gia_ban"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          class="form-control"
+                          :value="fmtMoney(edit.Gia_ban)"
+                          @input="onMoneyInput($event, 'Gia_ban')"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Giá giảm</label>
+                        <input
+                          data-field="Gia_Giam"
+                          ref="discountInputModal"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          placeholder="0"
+                          class="form-control"
+                          :class="{ 'form-control-highlight': isDiscountMode }"
+                          :value="fmtMoney(edit.Gia_Giam)"
+                          @input="onMoneyInput($event, 'Gia_Giam')"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-section-card modal-section-card--wide">
+                  <div class="modal-section-title">Mô tả sản phẩm</div>
+                  <div class="form-group">
+                    <textarea
+                      data-field="Mo_ta"
+                      v-model="edit.Mo_ta"
+                      class="form-control form-textarea"
+                      rows="3"
+                      @input="markAsEdited"
+                    ></textarea>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
           <div class="modal-footer">
-            <button class="btn-modal btn-danger" @click="deleteHang">
-              
-              <span class="btn-text">Xóa</span>
-            </button>
+            <div class="modal-footer-left">
+              <button class="btn-modal btn-danger" @click="deleteHang">
+                <span class="btn-icon"><i class="ri-delete-bin-2-fill"></i></span>
+                <span class="btn-text">Xóa</span>
+              </button>
+            </div>
             <div class="modal-footer-right">
               <button class="btn-modal btn-secondary" @click="attemptCloseModal">
                 <span class="btn-text">Hủy</span>
               </button>
-     <button
-  class="btn-modal btn-primary"
-  :class="{ 'is-loading': saving }"
-  @click="saveEdit"
-  :disabled="saving || uploading"
->
-  <span v-if="saving" class="btn-spinner"></span>
-  
-  <span class="btn-text">{{ saving ? 'Loading...' : 'Lưu' }}</span>
-</button>
-
+              <button
+                v-if="hasUnsavedChanges"
+                class="btn-modal btn-primary"
+                :class="{ 'is-loading': saving }"
+                @click="saveEdit"
+                :disabled="saving || uploading"
+              >
+                <span v-if="saving" class="btn-spinner"></span>
+                <span class="btn-text">{{ saving ? 'Loading...' : 'Lưu' }}</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
     </transition>
-
-    <!-- ===== SCROLL TO TOP BUTTON ===== -->
-   <!-- ===== SCROLL TO TOP BUTTON (MOBILE) ===== -->
-<transition name="fade-scale">
-  <button
-    v-if="showScrollTop && isMobile"
-    class="scroll-to-top"
-    @click="scrollToTop"
-    title="Lên đầu trang"
-    aria-label="Lên đầu trang"
-  >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M18 15l-6-6-6 6"/>
-    </svg>
-  </button>
-</transition>
-
-
+    <!-- ===== IMAGE PREVIEW ===== -->
+    <transition name="fade-scale">
+      <div v-if="previewImageUrl" class="image-preview-overlay" @click="closeImagePreview">
+        <div class="image-preview-modal" @click.stop>
+          <button class="image-preview-close" @click="closeImagePreview">✕</button>
+          <img :src="previewImageUrl" class="image-preview-large" alt="Xem ảnh phóng to" />
+        </div>
+      </div>
+    </transition>
     <!-- ===== NOTIFICATION MODAL ===== -->
     <transition name="fade-scale">
       <div v-if="alertMessage" class="notification-overlay" @click="alertMessage = ''">
@@ -864,14 +1093,27 @@
 
     </transition>
 
+    <button
+      v-if="showScrollTop"
+      :class="['scroll-top-btn', { 'scroll-top-btn--raised': raiseScrollTop }]"
+      @click="scrollToTableTop()"
+      title="Lên đầu danh sách"
+      aria-label="Scroll to top"
+    >
+      <i class="ri-arrow-up-line"></i>
+    </button>
+
   </div>
 </template>
+
 <script setup>
 import { ref, computed, onMounted, nextTick, onUnmounted, watch } from 'vue'
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzZLlPqjwNuAhRbkZ_UqeJCHQw4TxRQY4d7r-mejYhupfrFanyJcb9EFwvb30X5gqkQ/exec'
 const IMGBB_API_KEY = 'b202a4bdc79bf1dc72f6f6ded6b74501'
 const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload'
+const supplementaryImageKeys = ['img_1', 'img_2', 'img_3', 'img_4', 'img_5', 'img_6']
+const modalSupplementaryUploading = ref(supplementaryImageKeys.map(() => false))
 
 const list = ref([])
 const keyword = ref('')
@@ -890,7 +1132,11 @@ const originalEdit = ref({})
 const hasUnsavedChanges = ref(false)
 const discountInput = ref(null)
 const discountInputModal = ref(null)
+const statusSelect = ref(null)
+const statusSelectModal = ref(null)
 const isDiscountMode = ref(false)
+const statusOptionsVisible = ref(false)
+const previewImageUrl = ref('')
 
 const alertMessage = ref('')
 const alertType = ref('info')
@@ -898,14 +1144,33 @@ const confirmData = ref(null)
 const confirmBusy = ref(false)
 
 const isMobile = ref(window.innerWidth <= 768)
+const desktopTableSection = ref(null)
+const mobileListSection = ref(null)
+const mobileSearchRef = ref(null)
+const desktopTableAnchor = ref(null)
+const mobileTableAnchor = ref(null)
 const showScrollTop = ref(false)
+const pageRef = ref(null)
+const scrollCheckInterval = ref(null)
+const scrollContainer = ref(null)
+const scrollTopHoldTimer = ref(null)
+const holdScrollTopVisible = ref(false)
+const paginationDesktopRef = ref(null)
+const paginationMobileRef = ref(null)
+const raiseScrollTop = ref(false)
+const tableHovering = ref(false)
+const mainEl = ref(null)
+const crmMainEl = ref(null)
 
 const fileInput = ref(null)
 const fileInputModal = ref(null)
+const modalSupplementaryInputs = ref([])
+const sidebarSupplementaryInputs = ref([])
 const uploading = ref(false)
+const mainImageUploading = ref(false)
 const saving = ref(false) // ✅ thêm
 const currentPage = ref(1)
-const pageSize = 10
+const pageSize = 15
 const tableLoading = ref(true) 
 async function loadData() {
   tableLoading.value = true // ✅ dùng tableLoading
@@ -926,12 +1191,56 @@ async function loadData() {
 onMounted(() => {
   loadData()
   window.addEventListener('resize', handleResize)
-  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('scroll', handleScrollTopVisibility, { passive: true, capture: true })
+  document.addEventListener('scroll', handleScrollTopVisibility, { passive: true, capture: true })
+  mainEl.value = document.querySelector('main')
+  if (mainEl.value) {
+    mainEl.value.addEventListener('scroll', handleScrollTopVisibility, { passive: true, capture: true })
+  }
+  crmMainEl.value = document.querySelector('.crm-main')
+  if (crmMainEl.value) {
+    crmMainEl.value.addEventListener('scroll', handleScrollTopVisibility, { passive: true, capture: true })
+  }
+  if (desktopTableSection.value) {
+    desktopTableSection.value.addEventListener('scroll', handleScrollTopVisibility, { passive: true, capture: true })
+  }
+  nextTick(() => {
+    const anchorEl = desktopTableAnchor.value || mobileTableAnchor.value || pageRef.value
+    const scroller = getScrollParent(anchorEl || pageRef.value)
+    if (scroller && scroller !== window) {
+      scrollContainer.value = scroller
+      scroller.addEventListener('scroll', handleScrollTopVisibility, { passive: true, capture: true })
+    }
+
+    handleScrollTopVisibility()
+    // extra check in case no scroll event fired yet
+    setTimeout(handleScrollTopVisibility, 300)
+  })
+  scrollCheckInterval.value = setInterval(handleScrollTopVisibility, 400)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('scroll', handleScrollTopVisibility)
+  document.removeEventListener('scroll', handleScrollTopVisibility)
+  if (mainEl.value) {
+    mainEl.value.removeEventListener('scroll', handleScrollTopVisibility)
+  }
+  if (crmMainEl.value) {
+    crmMainEl.value.removeEventListener('scroll', handleScrollTopVisibility)
+  }
+  if (desktopTableSection.value) {
+    desktopTableSection.value.removeEventListener('scroll', handleScrollTopVisibility)
+  }
+  if (scrollContainer.value) {
+    scrollContainer.value.removeEventListener('scroll', handleScrollTopVisibility, { capture: true })
+  }
+  if (scrollCheckInterval.value) {
+    clearInterval(scrollCheckInterval.value)
+  }
+  if (scrollTopHoldTimer.value) {
+    clearTimeout(scrollTopHoldTimer.value)
+  }
 })
 
 
@@ -939,21 +1248,66 @@ function handleResize() {
   isMobile.value = window.innerWidth <= 768
 }
 
-function handleScroll(e) {
-  const y =
-    (e && e.target && typeof e.target.scrollTop === 'number' ? e.target.scrollTop : 0) ||
-    window.scrollY ||
-    window.pageYOffset ||
-    document.documentElement.scrollTop ||
-    document.body.scrollTop ||
-    0
+function handleScrollTopVisibility() {
+  if (!isMobile.value && tableHovering.value) {
+    showScrollTop.value = false
+    return
+  }
+  if (holdScrollTopVisible.value) {
+    showScrollTop.value = true
+    return
+  }
 
-  showScrollTop.value = y > 300
+  const triggerEl = isMobile.value ? mobileListSection.value : desktopTableSection.value
+  const customScroller = scrollContainer.value || getScrollParent(triggerEl || pageRef.value)
+  const sources = [
+    window,
+    customScroller,
+    mainEl.value,
+    crmMainEl.value,
+    !isMobile.value ? desktopTableSection.value : null
+  ].filter(Boolean)
+
+  showScrollTop.value = sources.some(src => isScrolledPastTrigger(src, triggerEl))
+
+  // Lift the button when pagination is near the viewport bottom to avoid overlap
+  const pag = isMobile.value ? paginationMobileRef.value : paginationDesktopRef.value
+  if (pag) {
+    const rect = pag.getBoundingClientRect()
+    raiseScrollTop.value = rect.bottom > window.innerHeight - 90
+  } else {
+    raiseScrollTop.value = false
+  }
 }
 
+function getScrollOffset(scroller) {
+  if (!scroller || scroller === window) {
+    const docOffset = document.documentElement ? document.documentElement.scrollTop : 0
+    const bodyOffset = document.body ? document.body.scrollTop : 0
+    const winOffset = window.pageYOffset ?? window.scrollY ?? 0
+    return Math.max(winOffset, docOffset, bodyOffset)
+  }
+  return scroller.scrollTop || 0
+}
 
-function scrollToTop() {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+function getElementScrollOffset(el, scroller) {
+  if (!el) return 0
+  if (!scroller || scroller === window) {
+    return el.getBoundingClientRect().top + getScrollOffset(window)
+  }
+  const parentRect = scroller.getBoundingClientRect()
+  return el.getBoundingClientRect().top - parentRect.top + scroller.scrollTop
+}
+
+function isScrolledPastTrigger(scroller, targetEl) {
+  if (!scroller || !targetEl) return false
+  if (scroller === window) {
+    return getScrollOffset(window) >= getElementScrollOffset(targetEl, window)
+  }
+  if (scroller === targetEl) {
+    return getScrollOffset(scroller) > 0
+  }
+  return getScrollOffset(scroller) >= getElementScrollOffset(targetEl, scroller)
 }
 
 /* ===== CATEGORIES ===== */
@@ -1013,8 +1367,9 @@ function clearSearch() {
 }
 
 /* ===== IMAGE UPLOAD ===== */
-async function handleImageUpload(event) {
-  const file = event.target.files[0]
+async function handleImageUpload(targetKey = 'Main_img', event) {
+  if (!event) return
+  const file = event.target.files?.[0]
   if (!file) return
 
   if (!file.type.startsWith('image/')) {
@@ -1027,7 +1382,16 @@ async function handleImageUpload(event) {
     return
   }
 
+  const slotIndex = supplementaryImageKeys.indexOf(targetKey)
+  const isMainImage = targetKey === 'Main_img'
+  if (slotIndex >= 0) {
+    modalSupplementaryUploading.value[slotIndex] = true
+  }
+
   uploading.value = true
+  if (isMainImage) {
+    mainImageUploading.value = true
+  }
 
   try {
     const formData = new FormData()
@@ -1041,9 +1405,9 @@ async function handleImageUpload(event) {
     const result = await response.json()
 
     if (result.success) {
-      edit.value.Main_img = result.data.url
+      const key = targetKey || 'Main_img'
+      edit.value[key] = result.data.url
       markAsEdited()
-      showAlert('Upload ảnh thành công', 'success')
     } else {
       throw new Error('Upload failed')
     }
@@ -1052,9 +1416,66 @@ async function handleImageUpload(event) {
     showAlert('Upload ảnh thất bại', 'error')
   } finally {
     uploading.value = false
+    if (slotIndex >= 0) {
+      modalSupplementaryUploading.value[slotIndex] = false
+    }
+    if (isMainImage) {
+      mainImageUploading.value = false
+    }
     if (fileInput.value) fileInput.value.value = ''
     if (fileInputModal.value) fileInputModal.value.value = ''
+    modalSupplementaryInputs.value.forEach(input => {
+      if (input) input.value = ''
+    })
+    sidebarSupplementaryInputs.value.forEach(input => {
+      if (input) input.value = ''
+    })
   }
+}
+
+function setModalInput(el, index) {
+  if (el) {
+    modalSupplementaryInputs.value[index] = el
+  } else {
+    modalSupplementaryInputs.value[index] = null
+  }
+}
+
+function openImagePreview(url) {
+  if (!url) return
+  previewImageUrl.value = url
+}
+
+function closeImagePreview() {
+  previewImageUrl.value = ''
+}
+
+function setSidebarInput(el, index) {
+  if (el) {
+    sidebarSupplementaryInputs.value[index] = el
+  } else {
+    sidebarSupplementaryInputs.value[index] = null
+  }
+}
+
+function openModalSupplementaryUpload(index) {
+  const input = modalSupplementaryInputs.value[index]
+  if (input) {
+    input.click()
+  }
+}
+
+function openSidebarSupplementaryUpload(index) {
+  const input = sidebarSupplementaryInputs.value[index]
+  if (input) {
+    input.click()
+  }
+}
+
+function removeSupplementaryImage(key) {
+  if (!key) return
+  edit.value[key] = ''
+  markAsEdited()
 }
 
 /* ===== COMPUTED ===== */
@@ -1145,17 +1566,99 @@ watch(filtered, () => {
 function goToPage(page) {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
-  scrollToTop()
+  scrollToTableTop({ hold: false })
+}
+
+function scrollToTableTop(options = { hold: true }) {
+  const shouldHold = options.hold !== false
+  if (scrollTopHoldTimer.value) {
+    clearTimeout(scrollTopHoldTimer.value)
+  }
+  holdScrollTopVisible.value = shouldHold
+  showScrollTop.value = true
+  nextTick(() => {
+    const anchor = isMobile.value ? mobileTableAnchor.value : desktopTableAnchor.value
+    if (!anchor) return
+
+    const stickyOffset = isMobile.value && mobileSearchRef.value
+      ? mobileSearchRef.value.getBoundingClientRect().height + 12
+      : 0
+
+    const scroller = getScrollParent(anchor)
+
+    if (scroller === window) {
+      const top = anchor.getBoundingClientRect().top + window.scrollY - stickyOffset
+      window.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' })
+    } else {
+      const parentRect = scroller.getBoundingClientRect()
+      const top = anchor.getBoundingClientRect().top - parentRect.top + scroller.scrollTop - stickyOffset
+      scroller.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' })
+    }
+
+    if (shouldHold) {
+      scrollTopHoldTimer.value = setTimeout(() => {
+        holdScrollTopVisible.value = false
+        handleScrollTopVisibility()
+      }, 700)
+    } else {
+      holdScrollTopVisible.value = false
+      handleScrollTopVisibility()
+    }
+  })
+}
+
+function getScrollParent(el) {
+  let parent = el?.parentElement
+  while (parent) {
+    const style = window.getComputedStyle(parent)
+    const overflowY = style.overflowY || style.overflow
+    if (/(auto|scroll)/.test(overflowY)) {
+      return parent
+    }
+    parent = parent.parentElement
+  }
+  return window
 }
 
 /* ===== EDIT TRACKING ===== */
+const numericFields = new Set(['Gia_goc', 'Gia_ban', 'Gia_Giam'])
+
+function normalizeString(val) {
+  return (val ?? '').toString().trim()
+}
+
+function valuesEqual(key, originalValue, currentValue) {
+  if (numericFields.has(key)) {
+    return Number(originalValue || 0) === Number(currentValue || 0)
+  }
+  return normalizeString(originalValue) === normalizeString(currentValue)
+}
+
+function hasEditChanges() {
+  const original = originalEdit.value || {}
+  const current = edit.value || {}
+  const keys = new Set([...Object.keys(original), ...Object.keys(current)])
+  for (const key of keys) {
+    if (!valuesEqual(key, original[key], current[key])) {
+      return true
+    }
+  }
+  return false
+}
+
 function markAsEdited() {
-  hasUnsavedChanges.value = true
+  hasUnsavedChanges.value = hasEditChanges()
 }
 
 function resetEditTracking() {
   hasUnsavedChanges.value = false
   originalEdit.value = {}
+}
+
+function selectMobileStatus(value) {
+  edit.value.Trang_thai = value
+  markAsEdited()
+  statusOptionsVisible.value = false
 }
 
 /* ===== ACTIONS ===== */
@@ -1214,7 +1717,8 @@ function exportGia() {
   showAlert(`Đã sao chép ${selected.value.length} giá bán`, 'success')
 }
 
-function openEdit(item) {
+function openEdit(item, options = {}) {
+  const { focusField = null } = options
   edit.value = { ...item }
   originalEdit.value = { ...item }
   isDiscountMode.value = false
@@ -1225,6 +1729,71 @@ function openEdit(item) {
   } else {
     showModal.value = true
   }
+
+  statusOptionsVisible.value = isMobile.value && focusField === 'Trang_thai'
+
+  focusFieldInput(focusField)
+}
+
+function focusFieldInput(field) {
+  if (!field) return
+
+  const attemptLimit = 6
+  let attempts = 0
+
+  const tryFocus = () => {
+    const containerSelector = isMobile.value ? '.sidebar-panel' : '.modal-container'
+    const selector = `[data-field="${field}"]`
+    let target = null
+
+    if (field === 'Trang_thai') {
+      target = isMobile.value ? statusSelect.value : statusSelectModal.value
+    } else {
+      target = document.querySelector(`${containerSelector} ${selector}`)
+    }
+
+    if (!target) return false
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    target.focus()
+    if (typeof target.select === 'function') {
+      target.select()
+    }
+
+    if (field === 'Trang_thai' && isMobile.value) {
+      setTimeout(() => openSelectDropdown(target), 320)
+    }
+
+    return true
+  }
+
+  const scheduleAttempt = (delay = 0) => {
+    setTimeout(() => {
+      attempts += 1
+      const focused = tryFocus()
+      if (!focused && attempts < attemptLimit && isMobile.value) {
+        scheduleAttempt(120)
+      }
+    }, delay)
+  }
+
+  nextTick(() => scheduleAttempt(0))
+}
+
+function openSelectDropdown(el) {
+  if (!el) return
+  // Trigger native select dropdown on mobile after render/transition
+  requestAnimationFrame(() => {
+    el.focus()
+    el.click()
+    setTimeout(() => {
+      try {
+        el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }))
+      } catch (err) {
+        el.click()
+      }
+    }, 30)
+  })
 }
 
 function openDiscount(item) {
@@ -1239,13 +1808,7 @@ function openDiscount(item) {
     showModal.value = true
   }
   
-  nextTick(() => {
-    const input = isMobile.value ? discountInput.value : discountInputModal.value
-    if (input) {
-      input.focus()
-      input.select()
-    }
-  })
+  focusFieldInput('Gia_Giam')
 }
 
 function attemptCloseModal() {
@@ -1281,6 +1844,8 @@ function attemptCloseSidebar() {
 function closeModal() {
   showModal.value = false
   isDiscountMode.value = false
+  statusOptionsVisible.value = false
+  previewImageUrl.value = ''
   resetEditTracking()
 }
 
@@ -1288,6 +1853,8 @@ function closeSidebar() {
   showSidebar.value = false
   isDiscountMode.value = false
   resetEditTracking()
+  statusOptionsVisible.value = false
+  previewImageUrl.value = ''
 }
 
 async function saveEdit() {
@@ -1553,8 +2120,8 @@ function onMoneyInput(e, key) {
 .search-input:focus {
   outline: none;
   background: rgba(15, 23, 42, 0.8);
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: #39ff14;
+  box-shadow: 0 0 0 4px rgba(57, 255, 20, 0.18);
 }
 
 .search-clear {
@@ -1603,10 +2170,10 @@ function onMoneyInput(e, key) {
   align-items: center;
   gap: 6px;
   padding: 0 16px;
-  background: rgba(51, 65, 85, 0.4);
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.28);
   border-radius: 10px;
-  color: #e2e8f0;
+  color: #c7f9d6;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1615,15 +2182,17 @@ function onMoneyInput(e, key) {
 }
 
 .btn-filter:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: #3b82f6;
+  background: rgba(57, 255, 20, 0.16);
+  border-color: #39ff14;
   transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(57, 255, 20, 0.15);
 }
 
 .btn-filter.active {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: #3b82f6;
-  color: #93c5fd;
+  background: #39ff14;
+  border-color: #39ff14;
+  color: #0f172a;
+  box-shadow: 0 8px 20px rgba(57, 255, 20, 0.25);
 }
 
 .filter-badge {
@@ -1740,10 +2309,10 @@ function onMoneyInput(e, key) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgba(51, 65, 85, 0.4);
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.28);
   border-radius: 10px;
-  color: #e2e8f0;
+  color: #c7f9d6;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1751,9 +2320,10 @@ function onMoneyInput(e, key) {
 }
 
 .btn-export:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: #3b82f6;
+  background: rgba(57, 255, 20, 0.16);
+  border-color: #39ff14;
   transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(57, 255, 20, 0.15);
 }
 
 .btn-export .btn-icon {
@@ -1847,6 +2417,125 @@ function onMoneyInput(e, key) {
   font-size: 24px;
 }
 
+.supplementary-images {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  justify-content: center;
+}
+
+.supplementary-image-slot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(30, 41, 59, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.supplementary-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.supplementary-thumb-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 18px;
+}
+.supplementary-images-group {
+  margin-top: 16px;
+}
+.supplementary-image-slot:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 4px;
+}
+.supplementary-image-slot:hover {
+  transform: translateY(-1px);
+}
+.supplementary-upload-input {
+  display: none;
+}
+
+.supplementary-image-slot.is-loading {
+  pointer-events: none;
+}
+
+.supplementary-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  z-index: 4;
+  backdrop-filter: blur(2px);
+}
+
+.supplementary-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.supplementary-delete-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.75);
+  color: #fffbfb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(8px);
+  transition: all 0.18s ease;
+  z-index: 5;
+}
+
+.supplementary-delete-btn:hover {
+  transform: translateY(-1px) scale(1.05);
+  background: rgba(239, 68, 68, 0.85);
+  border-color: rgba(239, 68, 68, 0.9);
+}
+
+.modal-container .form-row-image {
+  grid-template-columns: 260px 1fr 1fr;
+}
+
+.modal-container .main-image-group .image-preview-container {
+  max-width: 260px;
+}
+
+.modal-container .supplementary-images {
+  max-width: 100%;
+  gap: 12px;
+}
+
+.modal-container .supplementary-image-slot {
+  min-height: 96px;
+}
+
 .product-name-cell {
   font-weight: 500;
   color: #f8fafc;
@@ -1869,6 +2558,13 @@ function onMoneyInput(e, key) {
 .text-bold {
   font-weight: 600;
   color: #f8fafc;
+}
+.price-main {
+  font-weight: 700;
+  color: #22c55e;
+}
+.data-table .price-main {
+  color: #22c55e !important;
 }
 
 .text-muted {
@@ -1924,24 +2620,26 @@ function onMoneyInput(e, key) {
 
 /* ===== ACTION BUTTONS ===== */
 .btn-action-discount {
-  padding: 6px 12px;
+  padding: 8px 14px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 8px;
-  color: #fcd34d;
+  gap: 8px;
+  background: linear-gradient(135deg, #c27a00, #f1a208);
+  border: 1px solid rgba(241, 162, 8, 0.65);
+  border-radius: 10px;
+  color: #ffffff;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 12px rgba(241, 162, 8, 0.25);
 }
 
 .btn-action-discount:hover {
-  background: rgba(251, 191, 36, 0.2);
-  border-color: #fbbf24;
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, #f1a208, #c27a00);
+  border-color: #f1a208;
+  transform: translateY(-1px);
 }
 
 .checkbox {
@@ -1984,10 +2682,10 @@ function onMoneyInput(e, key) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(51, 65, 85, 0.4);
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.28);
   border-radius: 8px;
-  color: #e2e8f0;
+  color: #c7f9d6;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1995,9 +2693,10 @@ function onMoneyInput(e, key) {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: #3b82f6;
+  background: rgba(57, 255, 20, 0.16);
+  border-color: #39ff14;
   transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(57, 255, 20, 0.18);
 }
 
 .pagination-btn:disabled {
@@ -2006,10 +2705,58 @@ function onMoneyInput(e, key) {
 }
 
 .pagination-btn.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: #39ff14;
+  border-color: #39ff14;
+  color: #0f172a;
+  box-shadow: 0 8px 22px rgba(57, 255, 20, 0.28);
+}
+.scroll-top-btn {
+  position: fixed;
+  right: 22px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 2px solid #39ff14;
+  background: rgba(57, 255, 20, 0.12);
+  color: #39ff14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35), 0 0 18px rgba(57, 255, 20, 0.28);
+  backdrop-filter: blur(12px);
+  transition: all 0.2s;
+  z-index: 999;
+  opacity: 0.92;
+}
+
+.scroll-top-btn:hover {
+  background: #39ff14;
+  color: #0f172a;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(57, 255, 20, 0.35);
+}
+
+.scroll-top-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 18px rgba(57, 255, 20, 0.3);
+}
+
+.scroll-top-btn--raised {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+}
+
+@media (max-width: 768px) {
+  .scroll-top-btn {
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 86px);
+  }
+
+  .scroll-top-btn--raised {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
+  }
 }
 
 .pagination-arrow {
@@ -2032,60 +2779,88 @@ function onMoneyInput(e, key) {
 }
 
 .product-card {
-  background: rgba(51, 65, 85, 0.3);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: all 0.2s;
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.85));
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  transition: all 0.2s ease;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
 }
 
 .product-card:hover {
-  border-color: rgba(59, 130, 246, 0.3);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: rgba(59, 130, 246, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.32);
 }
 
-.card-header {
-  padding: 12px;
+.card-row {
+  padding: 12px 14px 10px;
   display: flex;
   gap: 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+  align-items: stretch;
 }
 
 .card-image-wrapper {
   flex-shrink: 0;
-}
-
-.card-image {
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid rgba(148, 163, 184, 0.1);
-}
-
-.card-image-empty {
-  width: 64px;
-  height: 64px;
+  width: 78px;
+  height: 78px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(51, 65, 85, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(51, 65, 85, 0.5);
-  border-radius: 8px;
-  font-size: 28px;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.card-image-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(51, 65, 85, 0.55);
+  color: #cbd5e1;
+  font-size: 24px;
 }
 
 .card-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card-header-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.card-header-inline .checkbox {
+  margin-left: auto;
 }
 
 .card-title {
   font-size: 14px;
   font-weight: 600;
   color: #f8fafc;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -2105,21 +2880,25 @@ function onMoneyInput(e, key) {
   color: #64748b;
   font-family: 'Monaco', 'Courier New', monospace;
 }
-
-.card-pricing {
-  padding: 12px;
-  background: rgba(15, 23, 42, 0.5);
+.card-price-block {
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  margin-top: 2px;
 }
 
 .price-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .price-row:last-of-type {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .price-label {
@@ -2134,71 +2913,109 @@ function onMoneyInput(e, key) {
 }
 
 .price-value.primary {
-  color: #60a5fa;
+  color: #22c55e;
 }
 
 .price-value.sale {
   color: #f87171;
+}
+.price-value.lang {
+  color: #3b82f6;
 }
 
 .price-badges {
   display: flex;
   gap: 6px;
 }
+.price-badges.compact {
+  margin-top: 6px;
+}
 
 .card-actions {
-  padding: 12px;
+  padding: 10px 12px 12px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 6px;
+  justify-items: stretch;
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
+  background: linear-gradient(180deg, rgba(15,23,42,0.55), rgba(15,23,42,0.8));
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .card-action-btn {
-  height: 36px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
   border: none;
   border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.18);
 }
 
-.card-action-btn:nth-child(3) {
+.card-action-btn.btn-delete {
   grid-column: 1 / -1;
 }
 
 .btn-edit {
-  background: rgba(34, 197, 94, 0.15);
-  color: #86efac;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, #0f9a52, #16c172);
+  color: #ffffff;
+  border: 1px solid rgba(22, 193, 114, 0.7);
+  box-shadow: 0 6px 12px rgba(22, 193, 114, 0.25);
 }
 
 .btn-edit:hover {
-  background: rgba(34, 197, 94, 0.25);
+  background: linear-gradient(135deg, #16c172, #0f9a52);
+  transform: translateY(-1px);
+}
+
+.btn-status {
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  color: #ffffff;
+  border: 1px solid rgba(56, 189, 248, 0.65);
+  box-shadow: 0 6px 12px rgba(56, 189, 248, 0.24);
+}
+
+.btn-status:hover {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  transform: translateY(-1px);
 }
 
 .btn-discount {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fcd34d;
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: linear-gradient(135deg, #c27a00, #f1a208);
+  color: #ffffff;
+  border: 1px solid rgba(241, 162, 8, 0.65);
+  box-shadow: 0 6px 12px rgba(241, 162, 8, 0.22);
 }
 
 .btn-discount:hover {
-  background: rgba(251, 191, 36, 0.25);
+  background: linear-gradient(135deg, #f1a208, #c27a00);
+  transform: translateY(-1px);
 }
 
 .btn-delete {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #b63232, #e24b4b);
+  color: #ffffff;
+  border: 1px solid rgba(226, 75, 75, 0.7);
+  box-shadow: 0 6px 12px rgba(226, 75, 75, 0.24);
 }
 
 .btn-delete:hover {
-  background: rgba(239, 68, 68, 0.25);
+  background: linear-gradient(135deg, #e24b4b, #b63232);
+  transform: translateY(-1px);
+}
+
+.card-action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
 }
 /* ===== MOBILE SIDEBAR ===== */
 .sidebar-overlay {
@@ -2297,6 +3114,104 @@ function onMoneyInput(e, key) {
   grid-template-columns: repeat(2, 1fr);
 }
 
+.modal-body-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.modal-image-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-details-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.modal-section-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-section-card--tight {
+  padding: 14px;
+}
+
+.modal-section-card--wide {
+  width: 100%;
+}
+
+.modal-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: #94e2ff;
+  margin-bottom: 6px;
+}
+
+.modal-section-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.modal-section-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.modal-section-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.modal-image-column .image-upload-area {
+  flex-direction: column;
+}
+
+.modal-section-card .form-label {
+  font-size: 11px;
+  letter-spacing: 0.4px;
+}
+
+.modal-section-card.modal-section-card--tight .supplementary-images {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modal-section-card.modal-section-card--tight .supplementary-image-slot {
+  min-height: 96px;
+  border-radius: 14px;
+}
+
+.modal-section-card.modal-section-card--tight .supplementary-thumb,
+.modal-section-card.modal-section-card--tight .supplementary-thumb-empty {
+  border-radius: 12px;
+}
+
+.modal-supplementary-grid .supplementary-delete-btn {
+  position: absolute;
+}
+
+.modal-supplementary-grid .supplementary-image-slot.is-loading .supplementary-delete-btn {
+  opacity: 0;
+}
+
 .form-row-image {
   grid-template-columns: 160px 1fr 1fr;
   gap: 16px;
@@ -2334,8 +3249,8 @@ function onMoneyInput(e, key) {
 .form-control:focus {
   outline: none;
   background: rgba(51, 65, 85, 0.5);
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: #39ff14;
+  box-shadow: 0 0 0 4px rgba(57, 255, 20, 0.18);
 }
 
 .form-control:disabled {
@@ -2345,9 +3260,38 @@ function onMoneyInput(e, key) {
 }
 
 .form-control-highlight {
-  background: rgba(251, 191, 36, 0.1);
-  border-color: #fbbf24;
-  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
+  background: rgba(57, 255, 20, 0.12);
+  border-color: #39ff14;
+  box-shadow: 0 0 0 4px rgba(57, 255, 20, 0.18);
+}
+
+.mobile-status-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.status-option-btn {
+  flex: 1;
+  height: 40px;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-option-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.status-option-btn.active {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
 .form-textarea {
@@ -2388,6 +3332,64 @@ function onMoneyInput(e, key) {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.image-preview-clickable {
+  cursor: zoom-in;
+}
+
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 24px;
+}
+
+.image-preview-modal {
+  position: relative;
+  max-width: min(920px, 92vw);
+  max-height: min(680px, 88vh);
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-preview-large {
+  max-width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.image-preview-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.image-preview-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  transform: rotate(90deg);
 }
 
 .empty-icon {
@@ -2498,6 +3500,7 @@ function onMoneyInput(e, key) {
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
 }
 
 .modal-header {
@@ -2600,31 +3603,6 @@ function onMoneyInput(e, key) {
   background: #dc2626;
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
-}
-
-/* ===== SCROLL TO TOP ===== */
-.scroll-to-top {
-  position: fixed;
-  bottom: 32px;
-  right: 32px;
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #3b82f6;
-  border: none;
-  border-radius: 50%;
-  color: #fff;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 999;
-}
-
-.scroll-to-top:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.5);
 }
 
 /* ===== NOTIFICATIONS ===== */
@@ -2851,15 +3829,27 @@ function onMoneyInput(e, key) {
     grid-template-columns: 1fr;
   }
 
-  .scroll-to-top {
-    width: 48px;
-    height: 48px;
-    bottom: 24px;
-    right: 24px;
-  }
-
   .category-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .modal-body-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .modal-image-column {
+    width: 100%;
+  }
+
+  .modal-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-section-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -3044,37 +4034,6 @@ function onMoneyInput(e, key) {
   .action-grid-6 { grid-template-columns: repeat(2, 1fr); }
 }
 */
-.scroll-to-top {
-  position: fixed;
-  bottom: calc(env(safe-area-inset-bottom) + 18px);
-  right: 18px;
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #3b82f6;
-  border: none;
-  border-radius: 50%;
-  color: #fff;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-  transition: all 0.25s ease;
-  z-index: 999;
-}
-
-.scroll-to-top:active {
-  transform: translateY(-2px) scale(0.98);
-}
-
-@media (max-width: 768px) {
-  .scroll-to-top {
-    width: 48px;
-    height: 48px;
-    right: 14px;
-    bottom: calc(env(safe-area-inset-bottom) + 14px);
-  }
-}
 /* DESKTOP: đưa pagination-controls ra giữa */
 @media (min-width: 769px) {
   .pagination-wrapper {
@@ -3135,3 +4094,6 @@ function onMoneyInput(e, key) {
   color: white;
 }
 </style>
+
+
+
