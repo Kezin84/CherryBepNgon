@@ -2923,7 +2923,11 @@ function scrollToTop() {
   cursor: pointer;
   z-index: -1; /* Behind button but accessible via ref */
 }
-
+@media (max-width: 768px) {
+  .hidden-picker {
+    z-index: 10;
+  }
+}
 .filter-reset-wrapper {
   margin-left: auto;
 }
