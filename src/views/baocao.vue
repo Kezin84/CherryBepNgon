@@ -37,8 +37,8 @@
         <div class="filter-picker-row">
           <!-- DAY PICKERS -->
           <template v-if="filterType === 'day'">
-            <div class="picker-group">
-              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(fromDateEl)" @touchstart.stop="openPicker(fromDateEl)">
+            <div class="picker-group" style="position: relative;">
+              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(fromDateEl)">
                 <div class="picker-icon"><i class="app-ico ri-calendar-line"></i></div>
                 <div class="picker-info">
                   <span class="picker-label">Từ ngày</span>
@@ -46,13 +46,13 @@
                 </div>
               </button>
               <!-- Hidden Native Input -->
-              <input ref="fromDateEl" type="date" v-model="fromDate" :max="toDate" class="hidden-picker" />
+              <input ref="fromDateEl" type="date" v-model="fromDate" :max="toDate" class="hidden-picker" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; z-index: 10;" />
             </div>
 
             <div class="picker-arrow"><i class="app-ico ri-arrow-right-line"></i></div>
 
-            <div class="picker-group">
-              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(toDateEl)" @touchstart.stop="openPicker(toDateEl)">
+            <div class="picker-group" style="position: relative;">
+              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(toDateEl)">
                 <div class="picker-icon"><i class="app-ico ri-calendar-check-line"></i></div>
                 <div class="picker-info">
                   <span class="picker-label">Đến ngày</span>
@@ -60,34 +60,34 @@
                 </div>
               </button>
               <!-- Hidden Native Input -->
-              <input ref="toDateEl" type="date" v-model="toDate" :min="fromDate" class="hidden-picker" />
+              <input ref="toDateEl" type="date" v-model="toDate" :min="fromDate" class="hidden-picker" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; z-index: 10;" />
             </div>
           </template>
 
           <!-- MONTH PICKERS -->
           <template v-if="filterType === 'month'">
-            <div class="picker-group">
-              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(fromMonthEl)" @touchstart.stop="openPicker(fromMonthEl)">
+            <div class="picker-group" style="position: relative;">
+              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(fromMonthEl)">
                 <div class="picker-icon"><i class="app-ico ri-calendar-line"></i></div>
                 <div class="picker-info">
                   <span class="picker-label">Từ tháng</span>
                   <span class="picker-value">{{ fromMonth ? formatDateBtn(fromMonth, 'month') : 'Chọn tháng' }}</span>
                 </div>
               </button>
-              <input ref="fromMonthEl" type="month" v-model="fromMonth" :max="toMonth" class="hidden-picker" />
+              <input ref="fromMonthEl" type="month" v-model="fromMonth" :max="toMonth" class="hidden-picker" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; z-index: 10;" />
             </div>
             
             <div class="picker-arrow"><i class="app-ico ri-arrow-right-line"></i></div>
 
-            <div class="picker-group">
-              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(toMonthEl)" @touchstart.stop="openPicker(toMonthEl)">
+            <div class="picker-group" style="position: relative;">
+              <button class="picker-btn" :class="{ invalid: isRangeInvalid }" @click="openPicker(toMonthEl)">
                 <div class="picker-icon"><i class="app-ico ri-calendar-check-line"></i></div>
                 <div class="picker-info">
                   <span class="picker-label">Đến tháng</span>
                   <span class="picker-value">{{ toMonth ? formatDateBtn(toMonth, 'month') : 'Chọn tháng' }}</span>
                 </div>
               </button>
-              <input ref="toMonthEl" type="month" v-model="toMonth" :min="fromMonth" class="hidden-picker" />
+              <input ref="toMonthEl" type="month" v-model="toMonth" :min="fromMonth" class="hidden-picker" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; z-index: 10;" />
             </div>
           </template>
 
