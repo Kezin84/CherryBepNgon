@@ -62,16 +62,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-
+import { API_URL, IMGBB_KEY } from '@/config/api'
 const router = useRouter()
 
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
-
-const SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
 
 const handleLogin = async () => {
   loading.value = true
@@ -83,7 +80,7 @@ const handleLogin = async () => {
   formData.append('username', username.value.trim())
   formData.append('password', password.value.trim())
 
-  const res = await fetch(SCRIPT_URL, {
+  const res = await fetch(API_URL, {
     method: 'POST',
     body: formData
   })

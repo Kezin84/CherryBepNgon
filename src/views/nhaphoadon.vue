@@ -1630,11 +1630,10 @@ import { reactive, ref, computed, onMounted, onUnmounted, watch, nextTick } from
 import { useRouter } from 'vue-router'
 import QrcodeVue from 'qrcode.vue'
 import html2canvas from 'html2canvas'
-
+import { API_URL, IMGBB_KEY } from '@/config/api'
 const router = useRouter() // Initialize router
 
-const GAS_URL =
-  'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
+
 
 /* ================= MOBILE STATE ================= */
 const isMobile = ref(false)
@@ -1826,7 +1825,7 @@ onMounted(async () => {
   phutNhanHang.value = timeParts[1] || '00'
 
   try {
-    const res = await fetch(`${GAS_URL}?action=all&_=${Date.now()}`)
+    const res = await fetch(`${API_URL}?action=all&_=${Date.now()}`)
     const json = await res.json()
 
     khachHangList.value = json.data.khach_hang || []
@@ -2806,7 +2805,7 @@ async function hoanThanhDon() {
   }
 
   try {
-    const res = await fetch(GAS_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },

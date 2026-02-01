@@ -863,12 +863,9 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
 import { onBeforeRouteLeave } from 'vue-router'
-
+import { API_URL, IMGBB_KEY } from '@/config/api'
 /* ================= CONFIG ================= */
-const GAS_URL =
-  'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
 
-const IMGBB_API_KEY = 'b202a4bdc79bf1dc72f6f6ded6b74501'
 const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload'
 
 /* ================= STATE ================= */
@@ -974,7 +971,7 @@ const uploadingSubImg = ref({
 /* ================= LOAD NCC ================= */
 async function loadNCC() {
   try {
-    const res = await fetch(`${GAS_URL}?action=sheet&sheet=nha_cung_cap`)
+    const res = await fetch(`${API_URL}?action=sheet&sheet=nha_cung_cap`)
     const json = await res.json()
     nhaCungCapList.value = json.data || []
 
@@ -992,7 +989,7 @@ async function loadNCC() {
 async function loadProducts() {
   isLoadingProducts.value = true
   try {
-    const res = await fetch(`${GAS_URL}?action=sheet&sheet=hang_hoa`)
+    const res = await fetch(`${API_URL}?action=sheet&sheet=hang_hoa`)
     const json = await res.json()
     productList.value = json.data || []
   } catch (err) {
@@ -1187,7 +1184,7 @@ async function handleSubImageUpload(e, fieldName) {
     const formData = new FormData()
     formData.append('image', file)
 
-    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_KEY}`, {
       method: 'POST',
       body: formData
     })
@@ -1244,7 +1241,7 @@ async function submit() {
   try {
     const payload = buildPayload()
 
-    await fetch(GAS_URL, {
+    await fetch(API_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
@@ -1407,7 +1404,7 @@ async function handleMainImageUpload(e) {
     const formData = new FormData()
     formData.append('image', file)
 
-    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_KEY}`, {
       method: 'POST',
       body: formData
     })
@@ -1440,7 +1437,7 @@ async function handleBulkImageUpload(e) {
     const uploads = files.map((file) => {
       const fd = new FormData()
       fd.append('image', file)
-      return fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+      return fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_KEY}`, {
         method: 'POST',
         body: fd
       }).then((res) => res.json())
@@ -1498,7 +1495,7 @@ async function handleEditImageUpload(e) {
     const fd = new FormData()
     fd.append('image', file)
 
-    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_KEY}`, {
       method: 'POST',
       body: fd
     })
@@ -1525,7 +1522,7 @@ async function handleEditSubImageUpload(e, fieldName) {
     const fd = new FormData()
     fd.append('image', file)
 
-    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+    const res = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_KEY}`, {
       method: 'POST',
       body: fd
     })

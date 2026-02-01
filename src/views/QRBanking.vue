@@ -1,10 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-
+import { API_URL, IMGBB_KEY } from '@/config/api'
 /* ================= CONFIG ================= */
-const API_URL =
-  'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
-const IMGBB_KEY = 'b202a4bdc79bf1dc72f6f6ded6b74501'
+
+
 
 /* ================= STATE ================= */
 const list = ref([])

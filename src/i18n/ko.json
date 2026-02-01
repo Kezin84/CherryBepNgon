@@ -2,6 +2,7 @@
   "menu": {
     "category": "카테고리",
     "detail": "상세 보기",
+    "detailNote": "상세 보기/메모",
     "add": "추가",
     "note": "메모 (가게용)"
   },

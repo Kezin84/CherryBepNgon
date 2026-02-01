@@ -339,7 +339,7 @@
   class="detail-link"
   @click.stop.prevent="openDetail(m)"
 >
-  {{ $t('menu.detail') }}
+  {{ $t('menu.detailNote') }}
 </a>
 
 
@@ -855,7 +855,7 @@
   class="finish-btn"
   @click="onFinish"
 >
-  {{ $t('cart.finish') }}
+  {{ $t('cart.finish') }} <i class="ri-send-plane-fill"></i>
 </button>
 <!-- 👈 NÚT QUAY LẠI (MOBILE ONLY) -->
 </div>
@@ -1618,6 +1618,7 @@ import { ref, computed, onMounted, watch ,nextTick,onUnmounted  } from 'vue'
 import L from 'leaflet'
 import { useRoute,useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { API_URL, IMGBB_KEY } from '@/config/api'
 const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
@@ -1681,8 +1682,7 @@ const searchWrapperRef = ref(null)
 const currentLang = computed(() => route.params.lang || 'vi')
 const langLoading = ref(false)
 /* ===== CONFIG ===== */
-const API_URL =
-  'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
+
 const closingModal = ref(false)
 const shopContacts = ref([])
 const cartListRef = ref(null)
@@ -1865,32 +1865,53 @@ const pages = computed(() => {
   const tp = totalPages.value
   const cp = currentPage.value
   const DOT = '...'
-  const WINDOW = 4   // số trang hiển thị liền nhau (desktop + mobile)
+  const WINDOW = 3   // số trang hiển thị liền nhau (giảm từ 4 xuống 3)
 
   // Ít trang → show hết
-  if (tp <= WINDOW + 1) {
+  if (tp <= WINDOW + 2) {
     return Array.from({ length: tp }, (_, i) => i + 1)
   }
 
-  // ===== SLIDING WINDOW (CHUNG) =====
-  let start = cp
-  let end = cp + WINDOW - 1
+  const result = []
 
-  if (end >= tp) {
-    end = tp
-    start = Math.max(1, tp - WINDOW + 1)
+  // ===== LUÔN HIỂN THỊ TRANG 1 =====
+  result.push(1)
+
+  // ===== TÍNH SLIDING WINDOW =====
+  let start = Math.max(2, cp - 1)
+  let end = Math.min(tp - 1, cp + 1)
+
+  // Nếu gần đầu, mở rộng về cuối
+  if (cp <= 3) {
+    start = 2
+    end = Math.min(tp - 1, WINDOW + 1)
   }
 
-  const range = []
+  // Nếu gần cuối, mở rộng về đầu
+  if (cp >= tp - 2) {
+    end = tp - 1
+    start = Math.max(2, tp - WINDOW)
+  }
+
+  // Thêm "..." nếu có khoảng cách từ trang 1
+  if (start > 2) {
+    result.push(DOT)
+  }
+
+  // Thêm các trang trong window
   for (let i = start; i <= end; i++) {
-    range.push(i)
+    result.push(i)
   }
 
-  if (end < tp) {
-    range.push(DOT, tp)
+  // Thêm "..." nếu có khoảng cách đến trang cuối
+  if (end < tp - 1) {
+    result.push(DOT)
   }
 
-  return range
+  // ===== LUÔN HIỂN THỊ TRANG CUỐI =====
+  result.push(tp)
+
+  return result
 })
 
 
@@ -3241,9 +3262,9 @@ const hasSale = computed(() =>
 
   /* Linear gradient xanh teal + trắng */
   background: linear-gradient(
-    135deg,
+    150deg,
     #01041b 0%,
-    #013a6d 100%
+    #004581 100%
   );
 
   border-radius: 16px;

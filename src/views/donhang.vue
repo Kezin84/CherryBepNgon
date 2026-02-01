@@ -524,8 +524,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch,inject } from 'vue'
+import { API_URL, IMGBB_KEY } from '@/config/api'
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
 
 const loading = ref(true)
 const donHangList = ref([])
@@ -614,7 +614,7 @@ onMounted(async () => {
   if (!filter.value.toDate) filter.value.toDate = todayYMD()
 
   try {
-    const res = await fetch(`${GAS_URL}?action=all`)
+    const res = await fetch(`${API_URL}?action=all`)
     const json = await res.json()
     donHangList.value = json.data.don_hang || []
     chiTietList.value = json.data.hoa_don_chi_tiet || []
@@ -1060,7 +1060,7 @@ async function hoanThanhDonHang(dh, opts = {}) {
   loadingId.value = dh.Ma_hoa_don
 
   try {
-    const res = await fetch(GAS_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
@@ -1102,7 +1102,7 @@ async function huyDonHang(dh, opts = {}) {
   loadingId.value = dh.Ma_hoa_don
 
   try {
-    const res = await fetch(GAS_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },

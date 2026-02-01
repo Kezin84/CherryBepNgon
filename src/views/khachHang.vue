@@ -336,13 +336,12 @@
 </template>
 
 <script>
+import { API_URL, IMGBB_KEY } from '@/config/api'
 export default {
   name: 'KhachHangManager',
   
   data() {
     return {
-      API_URL: 'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec',
-      
       khachHangList: [],
       donHangList: [],
       soThuChiList: [],
@@ -605,7 +604,7 @@ export default {
     async loadData() {
       this.loading = true
       try {
-        const res = await fetch(`${this.API_URL}?action=all`)
+        const res = await fetch(`${API_URL}?action=all`)
         const json = await res.json()
 
         if (json.success) {
@@ -736,7 +735,7 @@ export default {
           }
         }
 
-        await fetch(this.API_URL, {
+        await fetch(API_URL, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify(payload)
@@ -771,7 +770,7 @@ export default {
           Ma_khach_hang: this.deleteTarget.Ma_khach_hang
         }
 
-        await fetch(this.API_URL, {
+        await fetch(API_URL, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify(payload)

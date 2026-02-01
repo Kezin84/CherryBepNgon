@@ -1,9 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-
-/* ================= CONFIG ================= */
-const API_URL =
-  'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
+import { API_URL, IMGBB_KEY } from '@/config/api'
 
 /* ================= STATE ================= */
 const ncc = ref(null)

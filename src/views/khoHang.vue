@@ -1197,9 +1197,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, onUnmounted, watch } from 'vue'
-
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
-const IMGBB_API_KEY = 'b202a4bdc79bf1dc72f6f6ded6b74501'
+import { API_URL, IMGBB_KEY } from '@/config/api'
 const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload'
 const supplementaryImageKeys = ['img_1', 'img_2', 'img_3', 'img_4', 'img_5', 'img_6']
 const modalSupplementaryUploading = ref(supplementaryImageKeys.map(() => false))
@@ -1265,7 +1263,7 @@ const tableLoading = ref(true)
 async function loadData() {
   tableLoading.value = true // ✅ dùng tableLoading
   try {
-    const res = await fetch(`${GAS_URL}?action=sheet&sheet=hang_hoa`)
+    const res = await fetch(`${API_URL}?action=sheet&sheet=hang_hoa`)
     const json = await res.json()
     list.value = json.data || []
   } catch (error) {
@@ -1540,7 +1538,7 @@ async function handleImageUpload(targetKey = 'Main_img', event) {
     const formData = new FormData()
     formData.append('image', file)
 
-    const response = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+    const response = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_KEY}`, {
       method: 'POST',
       body: formData
     })
@@ -2037,7 +2035,7 @@ async function saveEdit() {
 
   saving.value = true
   try {
-    await fetch(GAS_URL, {
+    await fetch(API_URL, {
       method: 'POST',
       mode: 'no-cors',
       body: JSON.stringify({
@@ -2071,7 +2069,7 @@ function deleteHang() {
     loadingText: 'Đang xóa...',
     action: async () => {
       try {
-        await fetch(GAS_URL, {
+        await fetch(API_URL, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify({
@@ -2102,7 +2100,7 @@ function confirmDelete(item) {
     loadingText: 'Đang xóa...',
     action: async () => {
       try {
-        await fetch(GAS_URL, {
+        await fetch(API_URL, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify({

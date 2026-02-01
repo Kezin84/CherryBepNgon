@@ -2,6 +2,7 @@
   "menu": {
     "category": "分类",
     "detail": "查看详情",
+    "detailNote": "查看详情/备注",
     "add": "添加",
     "note": "菜品备注（给商家）"
   },

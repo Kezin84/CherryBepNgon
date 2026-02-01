@@ -2,6 +2,7 @@
   "menu": {
     "category": "Category",
     "detail": "View detail",
+    "detailNote": "View detail/note",
     "add": "ADD",
     "note": "Dish note (for shop)"
   },
