@@ -1,5 +1,5 @@
 // src/config/api.js
-export const API_URL = 'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
+export const API_URL = 'https://script.google.com/macros/s/AKfycbw2045vmIRLnkgu8TwXIMh9NIATLuptcUB_OEA-AStw7pdUF9nOoUUOjuh1m6hx0Zyo7w/exec'
 
 export const IMGBB_KEY = 'b202a4bdc79bf1dc72f6f6ded6b74501'
 

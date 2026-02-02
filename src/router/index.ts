@@ -1,9 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
 import MenuOnline from '@/views/MenuOnline.vue'
-
 import QRBanking from '@/views/QRBanking.vue'
-
 import NhapHang from '@/views/nhapHang.vue'
 import KhoHang from '@/views/khoHang.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
