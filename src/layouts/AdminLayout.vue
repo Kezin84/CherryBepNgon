@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
 import { KeepAlive } from 'vue'
-
+import { API_URL, IMGBB_KEY } from '@/config/api'
 const sidebarOpen = ref(true)
 const mobileSidebarOpen = ref(false)
 const router = useRouter()
@@ -34,8 +34,7 @@ const logout = () => {
   router.replace('/login')
 }
 
-const SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbye90xvM0df2PvH-sbYpdrJthTF6_psz3m6JwbT700ZJBKTkKFf7JJItKUUYr0FL9bb/exec'
+
 
 let expiredTimer = null
 let pendingTimer = null
@@ -67,7 +66,7 @@ function getDonStatus(dh) {
 // Load số đơn hàng đang xử lý
 const loadPendingOrders = async () => {
   try {
-    const res = await fetch(`${SCRIPT_URL}?action=sheet&sheet=don_hang`)
+    const res = await fetch(`${API_URL}?action=sheet&sheet=don_hang`)
     const json = await res.json()
     const donHangList = json.data || []
     
@@ -81,7 +80,7 @@ const loadPendingOrders = async () => {
 const loadMenuOnlineNcc = async () => {
   try {
     // Load NCC
-    const resNcc = await fetch(`${SCRIPT_URL}?action=sheet&sheet=nha_cung_cap`)
+    const resNcc = await fetch(`${API_URL}?action=sheet&sheet=nha_cung_cap`)
     const jsonNcc = await resNcc.json()
     const ncc = jsonNcc.data?.[0]
     if (ncc) {
@@ -91,7 +90,7 @@ const loadMenuOnlineNcc = async () => {
     }
 
     // Load Logo từ sheet logo
-    const resLogo = await fetch(`${SCRIPT_URL}?action=sheet&sheet=logo`)
+    const resLogo = await fetch(`${API_URL}?action=sheet&sheet=logo`)
     const jsonLogo = await resLogo.json()
     const logo = jsonLogo.data?.[0]
     if (logo) {
@@ -129,7 +128,7 @@ const checkExpiredSilently = async () => {
     form.append('action', 'checkExpired')
     form.append('username', user.username)
 
-    const res = await fetch(SCRIPT_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
       body: form
     })
